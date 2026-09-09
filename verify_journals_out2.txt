@@ -1,0 +1,25 @@
+CONNECT: req=1d0101010101010101e2d1 resp=1d0008e0 OK
+--- журнал 12h: вскрытие/закрытие корпуса ---
+12h rec0: req=1d0412004b29 resp=1d13251721082600000000000033bb OK
+  parsed: {"start":{"ss":13,"mm":25,"hh":17,"dd":21,"MM":8,"yy":2026,"empty":false},"end":{"ss":0,"mm":0,"hh":0,"dd":0,"MM":0,"yy":2000,"empty":true}}
+12h rec1: req=1d0412018ae9 resp=1d0615110702261708130702260450 OK
+  parsed: {"start":{"ss":6,"mm":15,"hh":11,"dd":7,"MM":2,"yy":2026,"empty":false},"end":{"ss":17,"mm":8,"hh":13,"dd":7,"MM":2,"yy":2026,"empty":false}}
+12h rec2: req=1d041202cae8 resp=1d091513070226562015070226de11 OK
+  parsed: {"start":{"ss":9,"mm":15,"hh":13,"dd":7,"MM":2,"yy":2026,"empty":false},"end":{"ss":56,"mm":20,"hh":15,"dd":7,"MM":2,"yy":2026,"empty":false}}
+--- журнал 1Ah: магнитное поле ---
+1Ah rec0: req=1d041a004ce9 resp=1d1438121207242038121207249b8e OK
+  parsed: {"start":{"ss":14,"mm":38,"hh":12,"dd":12,"MM":7,"yy":2024,"empty":false},"end":{"ss":20,"mm":38,"hh":12,"dd":12,"MM":7,"yy":2024,"empty":false}}
+1Ah rec1: req=1d041a018d29 resp=1d0000000000000000000000002e36 OK
+  parsed: {"start":{"ss":0,"mm":0,"hh":0,"dd":0,"MM":0,"yy":2000,"empty":true},"end":{"ss":0,"mm":0,"hh":0,"dd":0,"MM":0,"yy":2000,"empty":true}}
+1Ah rec2: req=1d041a02cd28 resp=1d0000000000000000000000002e36 OK
+  parsed: {"start":{"ss":0,"mm":0,"hh":0,"dd":0,"MM":0,"yy":2000,"empty":true},"end":{"ss":0,"mm":0,"hh":0,"dd":0,"MM":0,"yy":2000,"empty":true}}
+--- журнал 06h: превышение лимита мощности ---
+06h rec0: req=1d0406004429 resp=1d0000000000000000000000002e36 OK
+  parsed: {"start":{"ss":0,"mm":0,"hh":0,"dd":0,"MM":0,"yy":2000,"empty":true},"end":{"ss":0,"mm":0,"hh":0,"dd":0,"MM":0,"yy":2000,"empty":true}}
+06h rec1: req=1d04060185e9 resp=1d0000000000000000000000002e36 OK
+  parsed: {"start":{"ss":0,"mm":0,"hh":0,"dd":0,"MM":0,"yy":2000,"empty":true},"end":{"ss":0,"mm":0,"hh":0,"dd":0,"MM":0,"yy":2000,"empty":true}}
+--- журнал 13h: перепрограммирование ---
+13h rec0: req=1d0413004ab9 resp=1d0000000000000000000000002e36 OK
+  parsed: {"dd":0,"MM":0,"yy":2000,"requestCount":0,"empty":true,"changedRaw":[0,0,0,0,0,0,0]}
+13h rec1: req=1d0413018b79 resp=1d12072441f111a40080202b0610c3 OK
+  parsed: {"dd":18,"MM":7,"yy":2036,"requestCount":65,"empty":false,"changedRaw":[241,17,164,0,128,32,43]}

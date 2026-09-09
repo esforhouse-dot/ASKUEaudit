@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>АСКУЭ · Вход</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap">
+<style>
+  /* Швейцарская система — тот же токен-набор, что в index.html/admin.html (сент. 2026). */
+  :root {
+    color-scheme: light;
+    --bg:#ffffff; --card:#ffffff; --card2:#f4f5f6; --line:#d5d7da; --tx:#111315;
+    --muted:#6a6f75; --accent:#0077b3; --err:#c62828; --focus-ring:#00618f;
+    --raised:none; --raised-sm:none; --inset-sm:none;
+    --card-border: 1px solid var(--line);
+    --ease-out: cubic-bezier(.23,1,.32,1);
+    --font-body:'Archivo',Helvetica,Arial,sans-serif;
+    /* Настоящие цвета лого (см. CLAUDE.md «Бренд») — одинаковые в обеих темах, как и в
+       index.html/admin.html: это сырые фирменные оттенки, а не адаптированный под тему --accent,
+       им не нужна отдельная тёмная версия. Используются только здесь (полоса под «АСКУЭ»,
+       07.09.2026) — до сих пор в login.html вообще не было ни одного брендового цвета, кроме
+       рабочего --accent. */
+    --brand-blue:#008dd2; --brand-sky:#a2d9f7; --brand-teal:#73c8d7; --brand-lime:#b0cb1f;
+    /* Тот же фиолетовый, что у «Электроэнергии» в пикере «Тип ресурса» раздела «Объекты»
+       (index.html, --brand-purple) — просьба 07.09.2026 перекликнуться с ним в первом сегменте
+       полосы ниже. Не про сам логотип (те 4 цвета выше — оттуда), а про смысловую перекличку
+       с уже принятой в приложении раскраской ресурсов. */
+    --brand-purple:#8b6fce;
+  }
+  html[data-theme="dark"] {
+    color-scheme: dark;
+    --bg:#23272c; --card:#282d33; --card2:#2f353c; --line:#454b52; --tx:#e9ecef;
+    --muted:#99a1a9; --accent:#0e75ab; --err:#f4655a; --focus-ring:#a2d9f7;
+    --raised:none; --raised-sm:none; --inset-sm:none;
+    --card-border: 1px solid var(--line);
+  }
+  * { box-sizing:border-box; }
+  html, body { background:var(--bg); }
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:var(--bg); color:var(--tx); font:14px/1.5 var(--font-body); transition:background 200ms ease, color 200ms ease; }
+  @media (forced-colors: active) { .box, input, button, .theme-toggle-btn { box-shadow:none !important; border:1px solid CanvasText !important; } }
+  /* Кнопка темы привязана к самой карточке (position:absolute внутри .box), а не к углу
+     вьюпорта (position:fixed) — иначе на низком экране (альбомная ориентация телефона) она
+     перекрывала бы карточку входа, т.к. центрирование .box через flex не учитывает fixed-элементы. */
+  .theme-toggle-btn { position:absolute; top:12px; right:12px; width:38px; height:38px; padding:0;
+    display:flex; align-items:center; justify-content:center; background:var(--card2); color:var(--muted);
+    border:var(--card-border); border-radius:10px; box-shadow:var(--raised-sm); cursor:pointer; }
+  .theme-toggle-btn:hover { color:var(--tx); }
+  .theme-toggle-btn:active { box-shadow:var(--inset-sm); }
+  .theme-toggle-btn svg { width:16px; height:16px; }
+  .box { position:relative; width:100%; max-width:340px; padding:28px; background:var(--card);
+    border:var(--card-border); border-radius:16px; box-shadow:var(--raised); }
+  h1 { font-size:18px; margin:0 0 20px; text-align:center; }
+  label { display:block; color:var(--muted); font-size:12px; margin-bottom:6px; }
+  input { width:100%; background:var(--card2); border:var(--card-border); color:var(--tx);
+    border-radius:9px; padding:11px; font-family:inherit; font-size:14px; margin-bottom:14px; box-shadow:var(--inset-sm); }
+  input:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
+  button { width:100%; padding:12px; border:none; border-radius:11px; font-size:14px; font-weight:600;
+    cursor:pointer; color:#fff; background:var(--accent); font-family:inherit; box-shadow:var(--raised-sm);
+    transition:transform 160ms var(--ease-out), filter 150ms ease, box-shadow 140ms ease; }
+  button:hover:not(:disabled) { filter:brightness(1.1); }
+  button:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
+  button:active:not(:disabled) { transform:scale(.97); filter:brightness(1.05); }
+  button:disabled { opacity:.5; cursor:not-allowed; box-shadow:none; }
+  .err { color:var(--err); font-size:13px; min-height:18px; margin-top:10px; text-align:center; }
+
+  /* ===== Завершающий швейцарский слой (см. тот же блок в index.html) ===== */
+  * { border-radius:0 !important; }
+  /* Чертёжная сетка на фоне страницы (07.09.2026, «сделаем окно входа презентабельнее») —
+     инженерная тема без выдуманного логотипа: настоящий векторный знак (каска/гора) есть только
+     у пользователя как файл CorelDRAW, встраивать его подобие своим рисунком не стал бы —
+     слишком легко исказить фирменный знак. Сетка на var(--line) — тот же токен, что и волосяные
+     линии карточки, поэтому в обеих темах остаётся ЕДВА заметной подложкой, а не самостоятельным
+     узором. 42px — шаг миллиметровки, достаточно крупный, чтобы не рябить на мобильном экране. */
+  body { font-feature-settings:"tnum" 1; -webkit-font-smoothing:antialiased;
+    background-image:
+      repeating-linear-gradient(0deg, color-mix(in srgb, var(--line) 45%, transparent) 0 1px, transparent 1px 42px),
+      repeating-linear-gradient(90deg, color-mix(in srgb, var(--line) 45%, transparent) 0 1px, transparent 1px 42px); }
+  /* Заголовок — не по центру мелким кеглем, а крупным весом слева: карточка входа получает ту же
+     типографическую подачу, что шапка панели. Однотонная граница под ним заменена на .brand-bar
+     (см. ниже) — четыре настоящих цвета лого вместо произвольного var(--tx). */
+  h1 { font:800 32px/1 var(--font-body); letter-spacing:-.025em; text-align:left; margin:0; }
+  /* Эйбрау с названием организации (просьба 07.09.2026) — приём как у index.html/admin.html над
+     своим H1, но НЕ тот же трекинг: letter-spacing там (.top .modem) вдвое ýже generic-лейблов
+     (.1em против .05em) специально, чтобы эйбрау не сливался с подписями формы, а стоял отдельным,
+     более заметным ярусом. Design-review 07.09.2026 поймал, что первая версия скопировала
+     letter-spacing/вес у .label один в один (.14em оба) — здесь тоже сужаю трекинг и снижаю вес,
+     та же логика, другие числа (у .label в этом файле свой .14em/700, не 0.05em/обычный, как в
+     index.html — не может позаимствовать те же абсолютные цифры, только отношение). */
+  /* padding-right резервирует место под .theme-toggle-btn (position:absolute; top:12px;
+     right:12px внутри той же .box) — без резерва длинная строка полного юрлица могла бы уйти
+     под кнопку на узкой карточке (max-width:340px, из них 60px съедает padding самой .box).
+     margin-bottom:6px, не 10 (mobile-check 07.09.2026) — карточка выросла на ~55-75px из-за
+     трёх новых блоков (эйбрау/бар/футер), а .box изначально держит кнопку темы
+     position:absolute ВНУТРИ себя именно затем, чтобы уместиться на низком альбомном экране
+     телефона (см. коммент у .theme-toggle-btn выше) — этот запас стоит вернуть, где не жалко. */
+  .brand-eyebrow { font:500 10px/1 var(--font-body); text-transform:uppercase; letter-spacing:.08em;
+    color:var(--muted); margin:0 0 6px; padding-right:46px; }
+  /* Хайрлайн из фирменных цветов — честная замена вымышленному значку: жёсткие границы между
+     сегментами (0%/25%/25%/50%…), а не плавный градиент — мягкое смешение цветов чужеродно этой
+     плоской системе (см. CLAUDE.md, ни одного soft-blend цвета в токенах).
+     Design-review 07.09.2026, два фикса: (1) 4px, не 3px — сверка с прецедентами тонких полос
+     в index.html (.ccard-progress-track 5px, .reg-scrub track 4px) показала, что 3px в этой же
+     системе тоньше любого существующего образца; (2) inset-обводка на всю полосу — не сами hex
+     (те защищены CLAUDE.md, менять без причины нельзя), а именно обводка: --brand-sky (#a2d9f7)
+     даёт ~1.5:1 против белой карточки в светлой теме, второй сегмент почти пропадал бы без неё.
+     Первый сегмент — --brand-purple, не --brand-blue (07.09.2026, по просьбе): перекличка с
+     цветом «Электроэнергии» в пикере «Тип ресурса» раздела «Объекты» — та же логика окраски
+     ресурсов, что уже есть в приложении, а не отдельный, никак не связанный набор оттенков. */
+  .brand-bar { height:4px; margin:16px 0 20px; box-shadow:inset 0 0 0 1px var(--line);
+    background:linear-gradient(90deg,
+    var(--brand-purple) 0 25%, var(--brand-sky) 25% 50%, var(--brand-teal) 50% 75%, var(--brand-lime) 75% 100%); }
+  /* Подпись организации под формой — мелкий копирайт-кегль, НЕ капслоком (в отличие от eyebrow
+     выше): два разреженных капслока подряд, сверху и снизу карточки, спорили бы за внимание.
+     margin-top:16px — design-review 07.09.2026 предлагал 16 или 20 (тот же шаг, что и у
+     .brand-bar выше), mobile-check тем же днём попросил экономить высоту .box — 16 закрывает
+     обе просьбы разом, не изобретая третье число. */
+  .brand-footer { margin-top:16px; text-align:center; font-size:11px; color:var(--muted); }
+  label { text-transform:uppercase; letter-spacing:.14em; font-size:10.5px; font-weight:700; }
+  .box { border:1px solid var(--line); padding:30px; }
+  input { background:var(--card); border:1px solid var(--line); }
+  .theme-toggle-btn { background:var(--card); border:1px solid var(--line); }
+  .theme-toggle-btn:hover { border-color:var(--accent); }
+  .err { text-align:left; }
+</style>
+<script>
+  (function(){ try{ if(localStorage.getItem('askue-theme')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){} })();
+</script>
+</head>
+<body>
+  <div class="box">
+    <button type="button" class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Светлая/тёмная тема" aria-label="Переключить тему"></button>
+    <div class="brand-eyebrow">ООО «Дом инженерных решений»</div>
+    <h1>АСКУЭ</h1>
+    <div class="brand-bar" aria-hidden="true"></div>
+    <form id="f">
+      <label>Логин</label>
+      <input id="username" autocomplete="username" required>
+      <label>Пароль</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+      <button type="submit" id="btn">Войти</button>
+      <div class="err" id="err"></div>
+    </form>
+    <div class="brand-footer">Автоматизированная система учёта энергоресурсов</div>
+  </div>
+<script>
+const THEME_ICON_SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="15" height="15" style="flex:none"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
+const THEME_ICON_MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" style="flex:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+function renderThemeToggleIcon() {
+  const btn = document.getElementById('themeToggleBtn'); if (!btn) return;
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  btn.innerHTML = dark ? THEME_ICON_SUN : THEME_ICON_MOON;
+}
+function toggleTheme() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (dark) { document.documentElement.removeAttribute('data-theme'); } else { document.documentElement.setAttribute('data-theme', 'dark'); }
+  try { localStorage.setItem('askue-theme', dark ? 'light' : 'dark'); } catch (e) {}
+  renderThemeToggleIcon();
+}
+renderThemeToggleIcon();
+
+document.getElementById('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('btn'), err = document.getElementById('err');
+  btn.disabled = true; err.textContent = '';
+  try {
+    const r = await fetch('/api/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: document.getElementById('username').value.trim(),
+        password: document.getElementById('password').value,
+      }),
+    });
+    const d = await r.json();
+    if (!r.ok) { err.textContent = d.error || 'Ошибка входа'; btn.disabled = false; return; }
+    location.href = d.redirect || '/';
+  } catch (e2) {
+    err.textContent = 'Ошибка сети'; btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

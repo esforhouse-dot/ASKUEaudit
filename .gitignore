@@ -1,0 +1,15 @@
+node_modules/
+.env
+*.log
+.DS_Store
+dist/
+build/
+# Файлы с настройками модемов и SMS
+modems.json
+sms-config.json
+
+# Секреты и данные реальных клиентов — не публикуются (см. AUDIT/15_RISKS.md, находка №1)
+CLAUDE.md
+Доступы.docx
+diag_modems_out.txt
+id.txt

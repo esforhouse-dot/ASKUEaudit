@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление модемом IRZ AMT 42.B</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Управление модемом IRZ AMT 42.B</h1>
+            <nav>
+                <button type="button" class="nav-btn active" data-page="modems">Модемы</button>
+                <button type="button" class="nav-btn" data-page="monitor">Мониторинг</button>
+                <button type="button" class="nav-btn" data-page="gpio">Входы/Выходы</button>
+                <button type="button" class="nav-btn" data-page="settings">Настройки</button>
+                <button type="button" class="nav-btn" data-page="config">Конфигурация</button>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Страница: Список модемов -->
+            <section id="modems-page" class="page active">
+                <h2>Управление модемами</h2>
+                
+                <div class="card">
+                    <h3>Добавить модем</h3>
+                    <form id="add-modem-form">
+                        <div class="form-group">
+                            <label>Номер телефона модема:</label>
+                            <input type="text" id="modem-phone" placeholder="+79001234567" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Название:</label>
+                            <input type="text" id="modem-name" placeholder="Модем 1">
+                        </div>
+                        <div class="form-group">
+                            <label>Пароль (по умолчанию 5492):</label>
+                            <input type="text" id="modem-password" value="5492" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Добавить модем</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>Список модемов</h3>
+                    <div id="modems-list"></div>
+                    <div class="info-box" style="margin-top: 20px;">
+                        <p><strong>💡 Важно:</strong> Статус "Офлайн" - это нормально! Модем будет показывать этот статус до тех пор, пока не будет настроен и подключен к серверу.</p>
+                        <p><strong>📋 Что делать дальше:</strong></p>
+                        <ol style="margin-left: 20px; margin-top: 10px;">
+                            <li>Перейдите на вкладку <strong>"Конфигурация"</strong> и настройте SMS-шлюз (если нужно отправлять команды через SMS)</li>
+                            <li>Перейдите на вкладку <strong>"Настройки"</strong> и настройте режим работы модема (Клиент или Сервер)</li>
+                            <li>Настройте интерфейсы (RS485/RS232) в соответствии с вашим оборудованием</li>
+                        </ol>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Страница: Управление GPIO -->
+            <section id="gpio-page" class="page">
+                <h2>Управление входами и выходами (GPIO)</h2>
+                
+                <div class="card">
+                    <h3>Выбор модема</h3>
+                    <select id="gpio-modem-select" class="form-control">
+                        <option value="">Выберите модем...</option>
+                    </select>
+                </div>
+
+                <div id="gpio-controls" class="card" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin: 0;">Состояния входов и выходов</h3>
+                        <div>
+                            <button class="btn btn-info" onclick="refreshGPIOStates()" id="refresh-gpio-btn">
+                                🔄 Обновить
+                            </button>
+                            <label style="margin-left: 15px;">
+                                <input type="checkbox" id="auto-refresh-gpio" onchange="toggleAutoRefreshGPIO()">
+                                Автообновление (5 сек)
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Таблица состояний GPIO -->
+                    <div class="card" style="margin-bottom: 20px;">
+                        <h4>Текущие состояния</h4>
+                        <table id="gpio-states-table" class="data-table" style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>GPIO</th>
+                                    <th>Название</th>
+                                    <th>Тип</th>
+                                    <th>Состояние</th>
+                                    <th>Значение</th>
+                                    <th>Последнее обновление</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gpio-states-tbody">
+                                <tr>
+                                    <td colspan="6" style="text-align: center; padding: 20px;">
+                                        Загрузка состояний...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <h3>Управление выходами</h3>
+                    <div class="gpio-grid">
+                        <div class="gpio-item">
+                            <h4>GPIO 1</h4>
+                            <div class="gpio-controls">
+                                <button class="btn btn-success" onclick="setGPIO(1, 1)">Включить (1)</button>
+                                <button class="btn btn-danger" onclick="setGPIO(1, 0)">Выключить (0)</button>
+                                <button class="btn btn-info" onclick="impulseGPIO(1)">Импульс</button>
+                            </div>
+                        </div>
+                        <div class="gpio-item">
+                            <h4>GPIO 2</h4>
+                            <div class="gpio-controls">
+                                <button class="btn btn-success" onclick="setGPIO(2, 1)">Включить (1)</button>
+                                <button class="btn btn-danger" onclick="setGPIO(2, 0)">Выключить (0)</button>
+                                <button class="btn btn-info" onclick="impulseGPIO(2)">Импульс</button>
+                            </div>
+                        </div>
+                        <div class="gpio-item">
+                            <h4>GPIO 3</h4>
+                            <div class="gpio-controls">
+                                <button class="btn btn-success" onclick="setGPIO(3, 1)">Включить (1)</button>
+                                <button class="btn btn-danger" onclick="setGPIO(3, 0)">Выключить (0)</button>
+                                <button class="btn btn-info" onclick="impulseGPIO(3)">Импульс</button>
+                            </div>
+                        </div>
+                        <div class="gpio-item">
+                            <h4>GPO 4 (Силовой)</h4>
+                            <div class="gpio-controls">
+                                <button class="btn btn-success" onclick="setGPIO(4, 1)">Включить (1)</button>
+                                <button class="btn btn-danger" onclick="setGPIO(4, 0)">Выключить (0)</button>
+                                <button class="btn btn-info" onclick="impulseGPIO(4)">Импульс</button>
+                            </div>
+                        </div>
+                        <div class="gpio-item">
+                            <h4>GPO 5 (DCD)</h4>
+                            <div class="gpio-controls">
+                                <button class="btn btn-success" onclick="setGPIO(5, 1)">Включить (1)</button>
+                                <button class="btn btn-danger" onclick="setGPIO(5, 0)">Выключить (0)</button>
+                                <button class="btn btn-info" onclick="impulseGPIO(5)">Импульс</button>
+                            </div>
+                        </div>
+                        <div class="gpio-item">
+                            <h4>GPO 6 (DSR)</h4>
+                            <div class="gpio-controls">
+                                <button class="btn btn-success" onclick="setGPIO(6, 1)">Включить (1)</button>
+                                <button class="btn btn-danger" onclick="setGPIO(6, 0)">Выключить (0)</button>
+                                <button class="btn btn-info" onclick="impulseGPIO(6)">Импульс</button>
+                            </div>
+                        </div>
+                        <div class="gpio-item">
+                            <h4>GPO 7 (CTS)</h4>
+                            <div class="gpio-controls">
+                                <button class="btn btn-success" onclick="setGPIO(7, 1)">Включить (1)</button>
+                                <button class="btn btn-danger" onclick="setGPIO(7, 0)">Выключить (0)</button>
+                                <button class="btn btn-info" onclick="impulseGPIO(7)">Импульс</button>
+                            </div>
+                        </div>
+                        <div class="gpio-item">
+                            <h4>GPO 8 (RING)</h4>
+                            <div class="gpio-controls">
+                                <button class="btn btn-success" onclick="setGPIO(8, 1)">Включить (1)</button>
+                                <button class="btn btn-danger" onclick="setGPIO(8, 0)">Выключить (0)</button>
+                                <button class="btn btn-info" onclick="impulseGPIO(8)">Импульс</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Страница: Настройки модема -->
+            <section id="settings-page" class="page">
+                <h2>Настройки модема</h2>
+                
+                <div class="info-box" style="margin-bottom: 20px;">
+                    <p><strong>📱 Как настройки доходят до модема:</strong></p>
+                    <ol style="margin-left: 20px; margin-top: 10px;">
+                        <li>Вы заполняете форму и нажимаете "Применить настройки"</li>
+                        <li>Система формирует SMS-команды в формате IRZ (например: <code>5492 1AT$CLNT_IPP1=147.45.212.205,2001</code>)</li>
+                        <li><strong>Если SMS-шлюз настроен:</strong> Команды автоматически отправляются на номер модема</li>
+                        <li><strong>Если SMS-шлюз НЕ настроен:</strong> Команды показываются в консоли сервера - отправьте их вручную с телефона</li>
+                        <li>Модем получает SMS, обрабатывает команду и применяет настройки</li>
+                    </ol>
+                    <p style="margin-top: 10px;"><strong>💡 Все настройки сохраняются в файл и не пропадут после перезагрузки!</strong></p>
+                </div>
+                
+                <div class="card">
+                    <h3>Выбор модема</h3>
+                    <select id="settings-modem-select" class="form-control">
+                        <option value="">Выберите модем...</option>
+                    </select>
+                </div>
+
+                <div id="modem-settings" style="display: none;">
+                    <!-- Режим работы -->
+                    <div class="card">
+                        <h3>Режим работы</h3>
+                        <div class="info-box" style="margin-bottom: 15px;">
+                            <p><strong>Режим "Клиент":</strong> Модем подключается к вашему серверу по указанному IP и порту.</p>
+                            <p><strong>⚠️ Проблема с AT-командами в режиме "Клиент":</strong> Даже с протоколом iRZ Collector модем может не отвечать на AT-команды, так как протокол требует специального формата пакетов. Наш сервер не реализует полный протокол iRZ Collector.</p>
+                            <p><strong>✅ Режим "Сервер" (рекомендуется для мониторинга):</strong> Модем ждёт подключений на указанном порту. В этом режиме можно отправлять AT-команды напрямую через TCP без протокола. Для работы нужно знать IP-адрес модема (он будет определен автоматически из последнего подключения).</p>
+                            <p><strong>💡 Альтернатива:</strong> Используйте SMS-команды для получения данных (см. вкладку "Мониторинг" → кнопка "📱 Команды для SMS").</p>
+                        </div>
+                        <div id="last-commands" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #007bff;">
+                            <h4 style="margin-top: 0;">📱 Последние команды для отправки:</h4>
+                            <div id="commands-list" style="font-family: monospace; background: white; padding: 10px; border-radius: 3px; margin-top: 10px;"></div>
+                            <p style="margin-top: 10px; margin-bottom: 0; font-size: 0.9em; color: #666;">
+                                <strong>Как отправить:</strong> Скопируйте команды и отправьте их на номер модема через SMS с любого телефона.
+                            </p>
+                        </div>
+                        <form id="mode-form">
+                            <div class="form-group">
+                                <label>Режим:</label>
+                                <select id="modem-mode" class="form-control">
+                                    <option value="client">Клиент</option>
+                                    <option value="server">Сервер</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>IP-адрес сервера (для режима Клиент):</label>
+                                <input type="text" id="server-ip" placeholder="147.45.212.205" class="form-control">
+                                <small>Укажите IP-адрес вашего сервера, к которому должен подключаться модем</small>
+                            </div>
+                            <div class="form-group" id="modem-ip-group" style="display: none;">
+                                <label>IP-адрес модема (для режима Сервер):</label>
+                                <input type="text" id="modem-ip" placeholder="81.222.182.90" class="form-control">
+                                <small>Укажите IP-адрес модема для подключения к нему. Если не указан, будет использован IP из последнего подключения.</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Порт:</label>
+                                <input type="number" id="server-port" placeholder="2001" class="form-control">
+                                <small>Порт для подключения (для Клиента) или прослушивания (для Сервера)</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Номер соединения (для Клиента):</label>
+                                <input type="number" id="connection-number" value="1" min="1" max="5" class="form-control">
+                                <small>Можно настроить до 5 соединений (1-5)</small>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Применить настройки</button>
+                            <button type="button" id="force-connect-btn" class="btn btn-secondary" style="display: none; margin-left: 10px;" onclick="forceConnectToModem()">🔍 Проверить подключение</button>
+                        </form>
+                    </div>
+
+                    <!-- Настройка интерфейсов -->
+                    <div class="card">
+                        <h3>Настройка интерфейсов</h3>
+                        <div class="info-box" style="margin-bottom: 15px;">
+                            <p><strong>RS485:</strong> Используется для подключения к счетчикам и другим устройствам по протоколу Modbus.</p>
+                            <p><strong>RS232:</strong> Используется для прямого подключения устройств.</p>
+                        </div>
+                        <form id="interface-form">
+                            <div class="form-group">
+                                <label>Интерфейс:</label>
+                                <select id="interface-type" class="form-control">
+                                    <option value="RS485">RS485</option>
+                                    <option value="RS232">RS232</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Скорость (бод):</label>
+                                <select id="baud-rate" class="form-control">
+                                    <option value="9600" selected>9600</option>
+                                    <option value="19200">19200</option>
+                                    <option value="38400">38400</option>
+                                    <option value="57600">57600</option>
+                                    <option value="115200">115200</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Биты данных:</label>
+                                <select id="data-bits" class="form-control">
+                                    <option value="7">7</option>
+                                    <option value="8" selected>8</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Стоп-биты:</label>
+                                <select id="stop-bits" class="form-control">
+                                    <option value="1" selected>1</option>
+                                    <option value="1.5">1.5</option>
+                                    <option value="2">2</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Четность:</label>
+                                <select id="parity" class="form-control">
+                                    <option value="none" selected>Нет</option>
+                                    <option value="even">Четная</option>
+                                    <option value="odd">Нечетная</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Применить настройки интерфейса</button>
+                        </form>
+                    </div>
+
+                    <!-- Ждущий режим -->
+                    <div class="card">
+                        <h3>Ждущий режим</h3>
+                        <div class="form-group">
+                            <button class="btn btn-warning" onclick="setWaitMode('on')">Включить ждущий режим</button>
+                            <button class="btn btn-success" onclick="setWaitMode('off')">Выключить ждущий режим</button>
+                        </div>
+                        <div class="form-group">
+                            <label>Номер соединения (опционально):</label>
+                            <input type="number" id="wait-connection" min="0" max="5" value="0" class="form-control">
+                            <small>0 = все соединения Сервер, 1-5 = соединение Клиент</small>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Страница: Мониторинг модема -->
+            <section id="monitor-page" class="page">
+                <h2>Мониторинг модема</h2>
+                
+                <div class="card">
+                    <h3>Выбор модема</h3>
+                    <select id="monitor-modem-select" class="form-control">
+                        <option value="">Выберите модем...</option>
+                    </select>
+                    <div class="info-box" style="margin-top: 10px;">
+                        <p><strong>💡 Важно для получения данных:</strong></p>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li><strong>Режим "Сервер":</strong> Модем ждёт подключений. AT-команды работают напрямую через TCP. Рекомендуется для мониторинга!</li>
+                            <li><strong>Режим "Клиент":</strong> Модем подключается к серверу. AT-команды работают только через протокол iRZ Collector (нужен специальный сервер).</li>
+                            <li>Для получения данных модем должен быть подключен (статус "Онлайн")</li>
+                            <li>Если модем отвечает "ACCESS ERROR", нужно сначала отправить пароль сервисного режима через SMS: <code>5492 1AT$ATM_PWD=5492</code></li>
+                        </ul>
+                        <p style="margin-top: 10px;">
+                            <button class="btn btn-info" onclick="checkModemConnection()" style="font-size: 14px; padding: 8px 15px;">
+                                🔍 Проверить подключение
+                            </button>
+                        </p>
+                    </div>
+                </div>
+
+                <div id="monitor-content" style="display: none;">
+                    <!-- Информация об устройстве -->
+                    <div class="card">
+                        <h3>Информация об устройстве</h3>
+                        <div class="monitor-grid">
+                            <div class="monitor-item">
+                                <label>Устройство:</label>
+                                <div id="monitor-device" class="monitor-value">—</div>
+                            </div>
+                            <div class="monitor-item">
+                                <label>IMEI:</label>
+                                <div id="monitor-imei" class="monitor-value">—</div>
+                            </div>
+                            <div class="monitor-item">
+                                <label>Аппаратное обеспечение:</label>
+                                <div id="monitor-hardware" class="monitor-value">—</div>
+                            </div>
+                            <div class="monitor-item">
+                                <label>Программное обеспечение:</label>
+                                <div id="monitor-software" class="monitor-value">—</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn btn-primary" onclick="refreshModemInfo()">
+                                🔄 Обновить информацию (TCP)
+                            </button>
+                            <button class="btn btn-info" onclick="refreshParsedData()">
+                                📊 Данные из сообщений
+                            </button>
+                            <button class="btn btn-warning" onclick="getDataViaSMS()">
+                                📱 Команды для SMS
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Оператор и сигнал -->
+                    <div class="card">
+                        <h3>Сеть и сигнал</h3>
+                        <div class="monitor-grid">
+                            <div class="monitor-item">
+                                <label>Оператор:</label>
+                                <div id="monitor-operator" class="monitor-value">—</div>
+                            </div>
+                            <div class="monitor-item">
+                                <label>Уровень сигнала (CSQ):</label>
+                                <div id="monitor-csq" class="monitor-value">—</div>
+                            </div>
+                            <div class="monitor-item">
+                                <label>Уровень сигнала (%):</label>
+                                <div id="monitor-csq-percent" class="monitor-value">—</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <canvas id="csq-chart" width="400" height="150" style="max-width: 100%; height: 150px; background: #f8f9fa; border-radius: 5px;"></canvas>
+                        </div>
+                        <button class="btn btn-primary" onclick="startCSQMonitoring()" style="margin-top: 15px;" id="start-csq-btn">
+                            ▶️ Начать мониторинг сигнала
+                        </button>
+                        <button class="btn btn-danger" onclick="stopCSQMonitoring()" style="margin-top: 15px; display: none;" id="stop-csq-btn">
+                            ⏹️ Остановить мониторинг
+                        </button>
+                    </div>
+
+                    <!-- Время модема -->
+                    <div class="card">
+                        <h3>Время модема</h3>
+                        <div class="monitor-grid">
+                            <div class="monitor-item">
+                                <label>Время модема:</label>
+                                <div id="monitor-time" class="monitor-value">—</div>
+                            </div>
+                            <div class="monitor-item">
+                                <label>Дата модема:</label>
+                                <div id="monitor-date" class="monitor-value">—</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="refreshModemTime()" style="margin-top: 15px;">
+                            🔄 Обновить время
+                        </button>
+                    </div>
+
+                    <!-- Лог событий -->
+                    <div class="card">
+                        <h3>Лог событий</h3>
+                        <div id="monitor-log" class="monitor-log">
+                            <p style="color: #999; font-style: italic;">Лог событий будет отображаться здесь...</p>
+                        </div>
+                        <button class="btn btn-secondary" onclick="clearMonitorLog()" style="margin-top: 15px;">
+                            🗑️ Очистить лог
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Страница: Конфигурация SMS -->
+            <section id="config-page" class="page">
+                <h2>Конфигурация</h2>
+                
+                <!-- SMS настройки -->
+                <div class="card">
+                    <h3>Настройки отправки SMS</h3>
+                    <form id="sms-config-form">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="sms-enabled"> Включить отправку SMS
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>URL API SMS-шлюза:</label>
+                            <input type="text" id="sms-api-url" placeholder="https://api.sms-gateway.com/send" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>API ключ:</label>
+                            <input type="text" id="sms-api-key" placeholder="your-api-key" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="use-gsm-modem"> Использовать GSM-модем
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>Порт GSM-модема:</label>
+                            <input type="text" id="gsm-modem-port" placeholder="COM3" class="form-control">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Сохранить настройки SMS</button>
+                    </form>
+                    <div class="info-box">
+                        <p><strong>📝 Примечание:</strong> Если SMS-шлюз не настроен, команды будут выводиться в консоль сервера (режим тестирования).</p>
+                        <p><strong>🔧 Варианты настройки SMS:</strong></p>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li><strong>Через API SMS-шлюза:</strong> Укажите URL и API ключ вашего SMS-провайдера</li>
+                            <li><strong>Через GSM-модем:</strong> Подключите GSM-модем к серверу и укажите COM-порт</li>
+                            <li><strong>Режим тестирования:</strong> Оставьте выключенным - команды будут показаны в логах сервера</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Telegram настройки -->
+                <div class="card" style="margin-top: 20px;">
+                    <h3>Настройки Telegram уведомлений</h3>
+                    <form id="telegram-config-form">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="telegram-enabled"> Включить Telegram уведомления
+                            </label>
+                        </div>
+                        
+                        <h4 style="margin-top: 20px; margin-bottom: 10px;">Настройки бота</h4>
+                        <div class="form-group">
+                            <label>Токен бота:</label>
+                            <input type="text" id="telegram-bot-token" placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz" class="form-control">
+                            <small>Получите токен у <a href="https://t.me/BotFather" target="_blank">@BotFather</a> в Telegram</small>
+                        </div>
+                        
+                        <h4 style="margin-top: 20px; margin-bottom: 10px;">Получатели</h4>
+                        <div class="form-group">
+                            <label>Chat ID получателей (через запятую):</label>
+                            <textarea id="telegram-chat-ids" placeholder="123456789, 987654321" class="form-control" rows="3"></textarea>
+                            <small>Укажите один или несколько Chat ID через запятую. Чтобы узнать свой Chat ID, напишите боту <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a></small>
+                        </div>
+                        
+                        <h4 style="margin-top: 20px; margin-bottom: 10px;">Правила уведомлений</h4>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="notify-modem-connected" checked> Модем подключился
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="notify-modem-disconnected" checked> Модем отключился
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="notify-modem-offline"> Модем долго офлайн
+                            </label>
+                            <input type="number" id="modem-offline-minutes" value="30" min="1" class="form-control" style="width: 100px; display: inline-block; margin-left: 10px;">
+                            <span>минут</span>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="notify-command-error" checked> Ошибка выполнения команды
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="notify-low-signal" checked> Низкий уровень сигнала
+                            </label>
+                            <input type="number" id="low-signal-threshold" value="10" min="0" max="31" class="form-control" style="width: 100px; display: inline-block; margin-left: 10px;">
+                            <span>CSQ (0-31)</span>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="notify-gpio-changed"> Физическое изменение GPIO (датчик/кнопка)
+                                <br>
+                                <input type="checkbox" id="notify-gpio-command" style="margin-left: 20px;"> Команды GPIO из веб-интерфейса
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="notify-settings-changed"> Изменение настроек
+                            </label>
+                        </div>
+                        
+                        <div style="margin-top: 20px;">
+                            <button type="submit" class="btn btn-primary">Сохранить настройки Telegram</button>
+                            <button type="button" class="btn btn-info" onclick="testTelegramNotification(event)" style="margin-left: 10px;">📱 Отправить тестовое сообщение</button>
+                        </div>
+                    </form>
+                    <div class="info-box" style="margin-top: 20px;">
+                        <p><strong>📱 Настройка Telegram уведомлений:</strong></p>
+                        <ol style="margin-left: 20px; margin-top: 10px;">
+                            <li>Создайте бота через <a href="https://t.me/BotFather" target="_blank">@BotFather</a> в Telegram</li>
+                            <li>Скопируйте токен бота и вставьте в поле "Токен бота"</li>
+                            <li>Узнайте свой Chat ID, написав боту <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a></li>
+                            <li>Вставьте Chat ID в поле "Chat ID получателей"</li>
+                            <li>Нажмите "Сохранить настройки Telegram"</li>
+                        </ol>
+                        <p style="margin-top: 10px;"><strong>💡 Уведомления:</strong> Вы можете выбрать, о каких событиях получать уведомления. Это поможет не пропустить важные события.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <div id="message" class="message"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>АСКУЭ · Админ-панель</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap">
+<style>
+  /* Тот же токен-набор, что в index.html — швейцарская система (сент. 2026, заменила
+     неоморфизм): без теней и скруглений, структуру держат волосяные линии и плашки.
+     Нео-токены --raised/--inset оставлены обнулёнными — на них ссылаются правила ниже. */
+  :root {
+    color-scheme: light;
+    --bg:#ffffff; --card:#ffffff; --card2:#f4f5f6; --line:#d5d7da; --tx:#111315;
+    --muted:#6a6f75; --accent:#0077b3; --on:#1f8a52; --off:#9aa0a6; --err:#c62828;
+    --warn:#8a5a0b; --in:#0369a1; --focus-ring:#00618f;
+    --brand-blue:#008dd2; --brand-sky:#a2d9f7; --brand-teal:#73c8d7; --brand-lime:#b0cb1f;
+    --band:#ebecec; --band-ink:#1a1a1a;
+    --raised:none; --raised-sm:none; --inset:none; --inset-sm:none;
+    --pop-shadow: 0 14px 30px rgba(17,19,21,.14);
+    --card-border: 1px solid var(--line);
+    --ease-out: cubic-bezier(.23,1,.32,1);
+    --font-body:'Archivo',Helvetica,Arial,sans-serif;
+  }
+  html[data-theme="dark"] {
+    color-scheme: dark;
+    --bg:#23272c; --card:#282d33; --card2:#2f353c; --line:#454b52; --tx:#e9ecef;
+    --muted:#99a1a9; --accent:#0e75ab; --on:#4caf7d; --off:#6b7178; --err:#f4655a;
+    --warn:#e0a53c; --in:#4cb3e8; --focus-ring:#a2d9f7;
+    --brand-blue:#3aa9de; --brand-sky:#a2d9f7; --brand-teal:#73c8d7; --brand-lime:#b0cb1f;
+    --band:#363c44; --band-ink:#eef1f3;
+    --raised:none; --raised-sm:none; --inset:none; --inset-sm:none;
+    --pop-shadow: 0 14px 30px rgba(0,0,0,.45);
+    --card-border: 1px solid var(--line);
+  }
+  * { box-sizing:border-box; }
+  html, body { background:var(--bg); }
+  body { margin:0; background:var(--bg); color:var(--tx);
+    font:14px/1.5 var(--font-body); padding:18px; transition:background 200ms ease, color 200ms ease; }
+  @media (forced-colors: active) {
+    .card, button, .row input, .users-panel select, .users-panel input, .ghost, table { box-shadow:none !important; border:1px solid CanvasText !important; }
+  }
+  .wrap { max-width:900px; margin:0 auto; }
+  .top { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; gap:10px; }
+  .top .right { display:flex; align-items:center; gap:10px; }
+  h1 { font-size:19px; margin:0; font-weight:650; }
+  .link-btn { background:transparent; border:none; padding:0; margin:0; color:var(--muted);
+    font-size:12px; font-weight:400; font-family:inherit; cursor:pointer; box-shadow:none; }
+  .link-btn:hover { color:var(--tx); }
+  .icon-btn { width:38px; height:38px; padding:0; display:flex; align-items:center; justify-content:center;
+    background:var(--card2); color:var(--muted); box-shadow:var(--raised-sm); border:var(--card-border); }
+  .icon-btn:hover:not(:disabled) { filter:none; color:var(--tx); }
+  .icon-btn:active:not(:disabled) { box-shadow:var(--inset-sm); }
+  .icon-btn svg { width:16px; height:16px; }
+  .card { background:var(--card); border:var(--card-border); border-radius:16px; padding:18px; margin-bottom:16px; box-shadow:var(--raised); }
+  .card-title { font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted);
+    font-weight:600; margin-bottom:12px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:9px 8px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.04em; }
+  button { padding:9px 14px; border:none; border-radius:11px; font-size:13px; font-weight:600;
+    cursor:pointer; color:#fff; background:var(--accent); font-family:inherit; box-shadow:var(--raised-sm);
+    transition:transform 160ms var(--ease-out), filter 150ms ease, box-shadow 140ms ease; }
+  button:hover:not(:disabled) { filter:brightness(1.1); }
+  button:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
+  button:active:not(:disabled) { transform:scale(.97); filter:brightness(1.05); }
+  button:disabled { opacity:.5; cursor:not-allowed; box-shadow:none; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .row label { display:block; color:var(--muted); font-size:12px; margin-bottom:5px; }
+  .row input { background:var(--card2); border:var(--card-border); color:var(--tx);
+    border-radius:9px; padding:10px; font-family:inherit; font-size:13px; width:100%; box-shadow:var(--inset-sm); }
+  input:focus-visible, select:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
+  .field { flex:1; min-width:160px; }
+  .msg { font-size:13px; margin-top:8px; min-height:17px; color:var(--muted); }
+  .msg.err { color:var(--err); }
+  .msg.ok { color:var(--on); }
+  .empty { color:var(--muted); text-align:center; padding:20px; }
+  .ghost { background:var(--card2); border:var(--card-border); color:var(--tx); box-shadow:var(--raised-sm); }
+  .ghost:hover:not(:disabled) { filter:none; color:var(--accent); }
+  .ghost:active:not(:disabled) { box-shadow:var(--inset-sm); }
+  .ghost.active { color:var(--focus-ring); box-shadow:var(--inset-sm); }
+  .users-row td { border-bottom:1px solid var(--line); padding:0; }
+  .users-panel { padding:14px 8px 16px; background:var(--card2); border-radius:12px; margin:6px 0 10px; box-shadow:var(--inset-sm); }
+  .users-panel .table-scroll { overflow-x:auto; margin-bottom:12px; }
+  .users-panel table { margin-bottom:0; }
+  .users-panel th, .users-panel td { padding:7px 6px; font-size:12.5px; white-space:nowrap; }
+  .users-panel select, .users-panel input[type=date], .users-panel input[type=text] {
+    background:var(--card); border:var(--card-border); color:var(--tx);
+    border-radius:7px; padding:6px 8px; font-family:inherit; font-size:12.5px; box-shadow:var(--inset-sm); }
+  .expired-tag { color:var(--err); font-size:11px; margin-left:6px; }
+  .del-btn { background:var(--err); padding:8px 14px; font-size:12px; }
+  .small-btn { padding:8px 14px; font-size:12px; }
+  .users-panel .row { margin-bottom:0; align-items:flex-end; }
+  .users-panel .field { min-width:120px; }
+
+  /* ===== Завершающий швейцарский слой (см. тот же блок в index.html) ===== */
+  * { border-radius:0 !important; }
+  body { font-feature-settings:"tnum" 1; -webkit-font-smoothing:antialiased; }
+  h1 { font:800 26px/1.1 var(--font-body); letter-spacing:-.02em; }
+  .card-title { font-size:10.5px; font-weight:700; letter-spacing:.18em; }
+  .card { padding:20px; }
+  /* Шапка таблицы — плашка --band во всю строку заголовков, как в разделе «Объекты» */
+  thead th { background:var(--band); color:var(--band-ink); font-size:10.5px; letter-spacing:.16em;
+    border-bottom:2px solid var(--tx); }
+  .users-panel { background:transparent; border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line); padding:14px 8px 16px; }
+  .users-panel thead th { background:var(--card2); }
+  .icon-btn, .ghost { border:1px solid var(--line); background:var(--card); }
+  .icon-btn:hover:not(:disabled), .ghost:hover:not(:disabled) { border-color:var(--accent); }
+  .ghost.active { border-color:var(--accent); background:var(--card2); }
+  .row input, .users-panel select, .users-panel input[type=date], .users-panel input[type=text] {
+    background:var(--card); border:1px solid var(--line); }
+</style>
+<script>
+  (function(){ try{ if(localStorage.getItem('askue-theme')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){} })();
+</script>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>Админ-панель · АСКУЭ</h1>
+    <div class="right">
+      <button type="button" class="icon-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Светлая/тёмная тема" aria-label="Переключить тему"></button>
+      <button class="link-btn" onclick="logout()">Выйти</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Создать проект</div>
+    <div class="row">
+      <div class="field"><label>Название проекта</label><input id="pName" placeholder="Например: ул. Ленина 5"></div>
+      <div class="field"><label>Логин пользователя</label><input id="pUser"></div>
+      <div class="field"><label>Пароль</label><input id="pPass"></div>
+    </div>
+    <button id="createBtn" onclick="createProject()">Создать</button>
+    <div class="msg" id="createMsg"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Проекты</div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Название</th><th>Пользователи</th><th>Объекты</th><th>Модемы</th><th>Счётчики</th><th>Размер</th><th></th></tr></thead>
+        <tbody id="projectsBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script>
+async function api(url, method, body) {
+  const r = await fetch(url, {
+    method: method || 'GET',
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || ('Ошибка ' + r.status));
+  return d;
+}
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+const THEME_ICON_SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="15" height="15" style="flex:none"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
+const THEME_ICON_MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" style="flex:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+function renderThemeToggleIcon() {
+  const btn = document.getElementById('themeToggleBtn'); if (!btn) return;
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  btn.innerHTML = dark ? THEME_ICON_SUN : THEME_ICON_MOON;
+}
+function toggleTheme() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (dark) { document.documentElement.removeAttribute('data-theme'); } else { document.documentElement.setAttribute('data-theme', 'dark'); }
+  try { localStorage.setItem('askue-theme', dark ? 'light' : 'dark'); } catch (e) {}
+  renderThemeToggleIcon();
+}
+renderThemeToggleIcon();
+
+async function loadProjects() {
+  const d = await api('/api/admin/projects');
+  const tbody = document.getElementById('projectsBody');
+  if (!d.projects.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">Проектов пока нет</td></tr>';
+    return;
+  }
+  tbody.innerHTML = d.projects.map(p => `
+    <tr>
+      <td>${esc(p.name)}</td>
+      <td><button class="ghost small-btn" id="usersBtn-${p.id}" onclick="toggleUsers(${p.id})">Пользователи (${p.user_count})</button></td>
+      <td><button class="ghost small-btn" id="sitesBtn-${p.id}" onclick="toggleSites(${p.id})">Объекты (${p.site_count})</button></td>
+      <td>${p.modem_count}</td>
+      <td>${p.meter_count}</td>
+      <td>${p.sizeMb == null ? '—' : p.sizeMb.toFixed(3) + ' МБ'}</td>
+      <td><button onclick="impersonate(${p.id})">Войти как</button></td>
+    </tr>
+    <tr class="users-row" id="usersRow-${p.id}" style="display:none">
+      <td colspan="7"><div class="users-panel" id="usersPanel-${p.id}"></div></td>
+    </tr>
+    <tr class="users-row" id="sitesRow-${p.id}" style="display:none">
+      <td colspan="7"><div class="users-panel" id="sitesPanel-${p.id}"></div></td>
+    </tr>
+  `).join('');
+}
+
+// ── Пользователи проекта ────────────────────────────────────────────────────
+function toDateInput(ms) { return ms ? new Date(ms).toISOString().slice(0, 10) : ''; }
+function isExpired(ms) { return !!ms && ms < Date.now(); }
+
+async function toggleUsers(projectId) {
+  const row = document.getElementById('usersRow-' + projectId);
+  const btn = document.getElementById('usersBtn-' + projectId);
+  const opening = row.style.display === 'none';
+  row.style.display = opening ? 'table-row' : 'none';
+  if (btn) btn.classList.toggle('active', opening);
+  if (opening) await loadUsersPanel(projectId);
+}
+
+async function loadUsersPanel(projectId) {
+  const panel = document.getElementById('usersPanel-' + projectId);
+  panel.innerHTML = '<div class="empty">Загрузка…</div>';
+  let users;
+  try { ({ users } = await api('/api/admin/projects/' + projectId + '/users')); }
+  catch (e) { panel.innerHTML = `<div class="msg err">${esc(e.message)}</div>`; return; }
+  const btn = document.getElementById('usersBtn-' + projectId);
+  if (btn) btn.textContent = `Пользователи (${users.length})`;
+  panel.innerHTML = `
+    <div class="card-title">Пользователи проекта</div>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Логин</th><th>Роль</th><th>Доступ до</th><th>Новый пароль</th><th></th></tr></thead>
+      <tbody>
+        ${users.length ? users.map(u => `
+          <tr>
+            <td>${esc(u.username)}</td>
+            <td><select onchange="updateUserRole(${u.id}, this.value, ${projectId})">
+              <option value="master" ${u.access_role === 'master' ? 'selected' : ''}>Мастер</option>
+              <option value="limited" ${u.access_role === 'limited' ? 'selected' : ''}>Пользователь</option>
+            </select></td>
+            <td><input type="date" value="${toDateInput(u.access_until)}" onchange="updateUserUntil(${u.id}, this.value, ${projectId})">
+              ${isExpired(u.access_until) ? '<span class="expired-tag">истёк</span>' : ''}</td>
+            <td style="white-space:normal"><input type="text" id="pwField-${u.id}" placeholder="новый пароль" style="width:130px">
+              <button class="small-btn" onclick="resetPassword(${u.id}, ${projectId})">Сохранить</button></td>
+            <td><button class="del-btn small-btn" onclick="deleteUser(${u.id}, ${projectId}, '${esc(u.username).replace(/'/g, "\\'")}')">Удалить</button></td>
+          </tr>
+        `).join('') : '<tr><td colspan="5" class="empty">Пользователей пока нет</td></tr>'}
+      </tbody>
+    </table></div>
+    <div class="row">
+      <div class="field"><label>Логин</label><input id="newUserLogin-${projectId}"></div>
+      <div class="field"><label>Пароль</label><input id="newUserPass-${projectId}"></div>
+      <div class="field"><label>Роль</label>
+        <select id="newUserRole-${projectId}">
+          <option value="master">Мастер</option>
+          <option value="limited" selected>Пользователь</option>
+        </select>
+      </div>
+      <div class="field"><label>Доступ до (необязательно)</label><input type="date" id="newUserUntil-${projectId}"></div>
+      <button class="small-btn" onclick="addUser(${projectId})">Добавить</button>
+    </div>
+    <div class="msg" id="usersMsg-${projectId}"></div>
+  `;
+}
+
+async function addUser(projectId) {
+  const login = document.getElementById('newUserLogin-' + projectId).value.trim();
+  const pass = document.getElementById('newUserPass-' + projectId).value;
+  const accessRole = document.getElementById('newUserRole-' + projectId).value;
+  const accessUntil = document.getElementById('newUserUntil-' + projectId).value || null;
+  const msg = document.getElementById('usersMsg-' + projectId);
+  msg.className = 'msg'; msg.textContent = '';
+  if (!login || !pass) { msg.className = 'msg err'; msg.textContent = 'Укажите логин и пароль'; return; }
+  try {
+    await api('/api/admin/projects/' + projectId + '/users', 'POST', { username: login, password: pass, accessRole, accessUntil });
+    await loadUsersPanel(projectId);
+  } catch (e) {
+    msg.className = 'msg err'; msg.textContent = e.message;
+  }
+}
+async function reportUserFieldError(projectId, e) {
+  // Откат select/date к реальному состоянию с сервера (PATCH не применился) + сообщение об
+  // ошибке в тот же .msg-паттерн, что и остальные формы страницы — без нативного alert().
+  await loadUsersPanel(projectId);
+  const msg = document.getElementById('usersMsg-' + projectId);
+  if (msg) { msg.className = 'msg err'; msg.textContent = e.message; }
+}
+async function updateUserRole(userId, accessRole, projectId) {
+  try { await api('/api/admin/users/' + userId, 'PATCH', { accessRole }); }
+  catch (e) { reportUserFieldError(projectId, e); }
+}
+async function updateUserUntil(userId, dateValue, projectId) {
+  try { await api('/api/admin/users/' + userId, 'PATCH', { accessUntil: dateValue || null }); loadUsersPanel(projectId); }
+  catch (e) { reportUserFieldError(projectId, e); }
+}
+async function resetPassword(userId, projectId) {
+  const input = document.getElementById('pwField-' + userId);
+  const pass = input.value;
+  const msg = document.getElementById('usersMsg-' + projectId);
+  if (!pass) { msg.className = 'msg err'; msg.textContent = 'Введите новый пароль'; return; }
+  try {
+    await api('/api/admin/users/' + userId + '/reset-password', 'POST', { password: pass });
+    input.value = '';
+    msg.className = 'msg ok'; msg.textContent = 'Пароль обновлён — сообщите его пользователю';
+  } catch (e) {
+    msg.className = 'msg err'; msg.textContent = e.message;
+  }
+}
+async function deleteUser(userId, projectId, username) {
+  if (!confirm(`Удалить пользователя «${username}»?`)) return;
+  try { await api('/api/admin/users/' + userId, 'DELETE'); await loadUsersPanel(projectId); }
+  catch (e) { reportUserFieldError(projectId, e); }
+}
+
+// ── Объекты проекта (площадки/здания) — создаёт и удаляет только админ, привязку счётчиков к
+// ним делает Мастер в своём кабинете (см. index.html «Приборы учёта»).
+async function toggleSites(projectId) {
+  const row = document.getElementById('sitesRow-' + projectId);
+  const btn = document.getElementById('sitesBtn-' + projectId);
+  const opening = row.style.display === 'none';
+  row.style.display = opening ? 'table-row' : 'none';
+  if (btn) btn.classList.toggle('active', opening);
+  if (opening) await loadSitesPanel(projectId);
+}
+async function loadSitesPanel(projectId) {
+  const panel = document.getElementById('sitesPanel-' + projectId);
+  panel.innerHTML = '<div class="empty">Загрузка…</div>';
+  let sites;
+  try { ({ sites } = await api('/api/admin/projects/' + projectId + '/sites')); }
+  catch (e) { panel.innerHTML = `<div class="msg err">${esc(e.message)}</div>`; return; }
+  const btn = document.getElementById('sitesBtn-' + projectId);
+  if (btn) btn.textContent = `Объекты (${sites.length})`;
+  panel.innerHTML = `
+    <div class="card-title">Объекты проекта</div>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Название</th><th></th></tr></thead>
+      <tbody>
+        ${sites.length ? sites.map(s => `
+          <tr>
+            <td>${esc(s.name)}</td>
+            <td><button class="del-btn small-btn" onclick="deleteSite(${s.id}, ${projectId}, '${esc(s.name).replace(/'/g, "\\'")}')">Удалить</button></td>
+          </tr>
+        `).join('') : '<tr><td colspan="2" class="empty">Объектов пока нет</td></tr>'}
+      </tbody>
+    </table></div>
+    <div class="row">
+      <div class="field" style="max-width:280px"><label>Название объекта</label><input id="newSiteName-${projectId}" placeholder="например: Корпус А"></div>
+      <button class="small-btn" onclick="addSite(${projectId})">Добавить</button>
+    </div>
+    <div class="msg" id="sitesMsg-${projectId}"></div>
+  `;
+}
+async function addSite(projectId) {
+  const name = document.getElementById('newSiteName-' + projectId).value.trim();
+  const msg = document.getElementById('sitesMsg-' + projectId);
+  msg.className = 'msg'; msg.textContent = '';
+  if (!name) { msg.className = 'msg err'; msg.textContent = 'Укажите название объекта'; return; }
+  try {
+    await api('/api/admin/projects/' + projectId + '/sites', 'POST', { name });
+    await loadSitesPanel(projectId);
+  } catch (e) {
+    msg.className = 'msg err'; msg.textContent = e.message;
+  }
+}
+async function deleteSite(id, projectId, name) {
+  if (!confirm(`Удалить объект «${name}»? Привязанные к нему счётчики останутся без объекта (их можно будет перепривязать).`)) return;
+  try { await api('/api/admin/sites/' + id, 'DELETE'); await loadSitesPanel(projectId); }
+  catch (e) {
+    await loadSitesPanel(projectId);
+    const msg = document.getElementById('sitesMsg-' + projectId);
+    if (msg) { msg.className = 'msg err'; msg.textContent = e.message; }
+  }
+}
+
+async function createProject() {
+  const btn = document.getElementById('createBtn'), msg = document.getElementById('createMsg');
+  const projectName = document.getElementById('pName').value.trim();
+  const username = document.getElementById('pUser').value.trim();
+  const password = document.getElementById('pPass').value;
+  msg.className = 'msg'; msg.textContent = '';
+  if (!projectName || !username || !password) { msg.className = 'msg err'; msg.textContent = 'Заполните все поля'; return; }
+  btn.disabled = true;
+  try {
+    await api('/api/admin/projects', 'POST', { projectName, username, password });
+    document.getElementById('pName').value = '';
+    document.getElementById('pUser').value = '';
+    document.getElementById('pPass').value = '';
+    msg.className = 'msg ok'; msg.textContent = 'Проект создан';
+    loadProjects();
+  } catch (e) {
+    msg.className = 'msg err'; msg.textContent = e.message;
+  } finally { btn.disabled = false; }
+}
+
+async function impersonate(projectId) {
+  await api('/api/admin/impersonate/' + projectId, 'POST');
+  location.href = '/';
+}
+async function logout() {
+  try { await fetch('/api/logout', { method: 'POST' }); } catch (e) {}
+  location.href = '/login.html';
+}
+
+loadProjects();
+</script>
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Превью · вариант 2 (карточки)</title>
+<style>
+  :root {
+    --bg:#0d1220; --card:#151c2b; --card2:#0f1626; --line:#26304a; --tx:#e8eef7;
+    --muted:#8291ab; --accent:#3b82f6; --on:#33c37f; --off:#5b6b85; --err:#e35d5d;
+    --warn:#e2a13a; --in:#38bdf8;
+    --ease-out: cubic-bezier(.23,1,.32,1);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--tx);
+    font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif; padding:32px; }
+  .wrap { max-width:1060px; margin:0 auto; }
+  .sec-title { font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted);
+    margin:0 0 14px; font-weight:600; }
+
+  /* Вариант 2: диагональный градиент, компактные карточки */
+  .ccards { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
+  .ccard { position:relative; overflow:hidden; border-radius:16px; padding:14px 16px 16px;
+    display:flex; flex-direction:column;
+    background:
+      radial-gradient(130% 100% at 100% 0%, color-mix(in srgb, var(--c) 55%, transparent) 0%, transparent 58%),
+      #121019;
+    box-shadow:0 14px 26px -14px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.06);
+  }
+  .ccard-green  { --c:var(--on); }
+  .ccard-blue   { --c:var(--accent); }
+  .ccard-orange { --c:var(--warn); }
+
+  .ccard-head { display:flex; align-items:center; justify-content:space-between; }
+  .ccard-date { font-size:11px; color:rgba(255,255,255,.5); font-weight:600; }
+  .ccard-menu { background:transparent; border:none; color:rgba(255,255,255,.5); font-size:16px;
+    line-height:1; padding:2px 4px; cursor:pointer; letter-spacing:2px; transition:color 150ms ease; }
+  @media (hover:hover) and (pointer:fine) { .ccard-menu:hover { color:#fff; } }
+
+  .ccard-body { text-align:center; margin-top:10px; }
+  .ccard-body h3 { margin:0; font-size:17px; font-weight:750; letter-spacing:-.01em; }
+  .ccard-body p { margin:2px 0 0; color:rgba(255,255,255,.55); font-size:12px; }
+
+  .ccard-progress { margin-top:14px; text-align:left; }
+  .ccard-progress-label { font-size:12px; font-weight:600; color:rgba(255,255,255,.85); }
+  .ccard-progress-track { height:6px; border-radius:4px; background:rgba(255,255,255,.12); overflow:hidden; margin-top:7px; }
+  .ccard-progress-fill { height:100%; border-radius:4px; transform-origin:left; transform:scaleX(0);
+    animation:fillBar 550ms var(--ease-out) 100ms forwards;
+    background:linear-gradient(90deg, color-mix(in srgb, var(--c) 65%, white), var(--c)); }
+  @keyframes fillBar { to { transform:scaleX(1); } }
+  @media (prefers-reduced-motion:reduce) {
+    .ccard-progress-fill { animation:none; transform:scaleX(1); }
+  }
+  .ccard-progress-pct { text-align:right; font-size:11px; font-weight:700; color:rgba(255,255,255,.85); margin-top:4px; }
+  .ccard-kv { margin-top:8px; text-align:left; font-size:12px; }
+  .ccard-kv-row { display:flex; justify-content:space-between; padding:3px 0; }
+  .ccard-kv-row span { color:rgba(255,255,255,.55); }
+  .ccard-kv-row b { color:#fff; }
+
+  .ccard-foot { margin-top:auto; padding-top:12px; }
+  .ccard-pill { font-size:11px; font-weight:600; color:#fff; background:rgba(255,255,255,.12);
+    padding:5px 11px; border-radius:20px; white-space:nowrap; }
+
+  .refresh-row { display:flex; align-items:center; gap:10px; margin-top:16px; }
+  .refresh-btn { display:flex; align-items:center; gap:7px; background:transparent;
+    border:1px solid var(--line); color:var(--muted); border-radius:10px; padding:9px 14px;
+    font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:color 150ms ease, border-color 150ms ease, transform 160ms var(--ease-out); }
+  .refresh-btn svg { width:14px; height:14px; }
+  @media (hover:hover) and (pointer:fine) { .refresh-btn:hover { color:var(--tx); border-color:var(--accent); } }
+  .refresh-btn:active { transform:scale(.97); }
+  .refresh-hint { font-size:12px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="sec-title">Состояние сети — вариант 2</div>
+  <div class="ccards">
+
+    <div class="ccard ccard-green">
+      <div class="ccard-head">
+        <span class="ccard-date">12с назад</span>
+        <button class="ccard-menu">⋮</button>
+      </div>
+      <div class="ccard-body">
+        <h3>Сигнал</h3>
+        <p>-75 dBm · CSQ 19</p>
+      </div>
+      <div class="ccard-progress">
+        <div class="ccard-progress-label">Уровень</div>
+        <div class="ccard-progress-track"><div class="ccard-progress-fill" style="width:61%"></div></div>
+        <div class="ccard-progress-pct">61%</div>
+      </div>
+      <div class="ccard-foot">
+        <span class="ccard-pill">стабильно</span>
+      </div>
+    </div>
+
+    <div class="ccard ccard-blue">
+      <div class="ccard-head">
+        <span class="ccard-date">сейчас</span>
+        <button class="ccard-menu">⋮</button>
+      </div>
+      <div class="ccard-body">
+        <h3>Оператор / вышка</h3>
+        <p>250-20 · 777 DCS 1800</p>
+      </div>
+      <div class="ccard-kv">
+        <div class="ccard-kv-row"><span>Сота / LAC</span><b>0x6989 / 11642</b></div>
+      </div>
+      <div class="ccard-foot">
+        <span class="ccard-pill">online</span>
+      </div>
+    </div>
+
+    <div class="ccard ccard-orange">
+      <div class="ccard-head">
+        <span class="ccard-date">12с назад</span>
+        <button class="ccard-menu">⋮</button>
+      </div>
+      <div class="ccard-body">
+        <h3>Температура</h3>
+        <p>модуль модема</p>
+      </div>
+      <div class="ccard-progress">
+        <div class="ccard-progress-label">39 °C · порог 80 °C</div>
+        <div class="ccard-progress-track"><div class="ccard-progress-fill" style="width:49%"></div></div>
+        <div class="ccard-progress-pct">49%</div>
+      </div>
+      <div class="ccard-foot">
+        <span class="ccard-pill">норма</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="refresh-row">
+    <button class="refresh-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M4 4v5h5M20 20v-5h-5M19 9a7 7 0 0 0-12.6-3M5 15a7 7 0 0 0 12.6 3" stroke-linecap="round"/></svg>
+      Обновить состояние
+    </button>
+    <span class="refresh-hint">опрашивает модем — обновляет все три карточки разом</span>
+  </div>
+</div>
+</body>
+</html>
