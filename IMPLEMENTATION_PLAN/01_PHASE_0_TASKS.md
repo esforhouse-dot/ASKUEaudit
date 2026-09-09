@@ -188,6 +188,19 @@ staging перед продом.
 
 ## P0-04 — Security headers в nginx (CSP/HSTS/Referrer-Policy)
 
+> **Статус (2026-09-09): `DONE` (реализация + верификация), деплой в production — отдельным
+> шагом.** `fetched/nginx-askue.conf`: добавлены `Referrer-Policy`, `Strict-Transport-Security`
+> (без `preload`), `Content-Security-Policy` (`'unsafe-inline'` для script-src/style-src —
+> обязательно, фронтенд построен на инлайновых script/style/onclick, см. `AUDIT/04_FRONTEND.md`).
+> Попутно исправлено расхождение локального файла с реальностью — Certbot добавил `listen 443
+> ssl` и редирект-блок прямо на сервере, локальная копия этого не отражала. Проверено: `nginx -t`
+> на изолированной тестовой обёртке на VPS (не `/etc/nginx/*`) — синтаксис корректен; статический
+> аудит всех 4 HTML-файлов на внешние ресурсы, которые CSP могла бы заблокировать — единственный
+> сторонний источник везде `fonts.googleapis.com`/`fonts.gstatic.com`, уже учтён в политике.
+> Живой браузерный прогон не проводился — нет staging (`P0-10`) и browser-инструмента.
+> **Production (`/etc/nginx/sites-available/askue`) не менялся** — деплой требует отдельного
+> явного разрешения.
+
 **Phase:** 0 (workstream A, ADR-08)
 
 **Файлы/модули:** `fetched/nginx-askue.conf` + фактический конфиг на VPS.
