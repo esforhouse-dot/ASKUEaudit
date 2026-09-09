@@ -27,6 +27,7 @@ const db = require('./db.js');
 const auth = require('./auth.js');
 const state = require('./modemState.js');
 const mailer = require('./mailer.js'); // SMTP-отправка для «Уведомления и отклонения», см. mailer.js
+const loginRateLimit = require('./loginRateLimit.js'); // P0-03: троттлинг /api/login, см. файл
 
 const PORT = 3005;
 const MODEM_SMS_PASSWORD = '5492';   // фиксированный вендорский код разблокировки iRZ ATM (не секрет конкретного устройства)
@@ -923,8 +924,13 @@ app.post('/api/login', (req, res) => {
   if (typeof username !== 'string' || typeof password !== 'string') {
     return res.status(400).json({ error: 'логин и пароль обязательны' });
   }
+  // P0-03: троттлинг по (IP, логин) — до обращения к bcrypt, не после (см. loginRateLimit.js).
+  if (!loginRateLimit.checkAllowed(req.ip, username)) {
+    return res.status(429).json({ error: 'слишком много неудачных попыток входа, попробуйте позже' });
+  }
   const admin = db.prepare('SELECT * FROM admins WHERE username = ?').get(username);
   if (admin && auth.verifyPassword(password, admin.password_hash)) {
+    loginRateLimit.recordSuccess(req.ip, username);
     const token = auth.createSession('admin', admin.id, null);
     auth.setCookie(res, token);
     return res.json({ ok: true, redirect: '/admin.html' });
@@ -932,12 +938,15 @@ app.post('/api/login', (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
   if (user && auth.verifyPassword(password, user.password_hash)) {
     if (user.access_until && user.access_until < Date.now()) {
+      // Верные учётные данные, но истёкший доступ — не признак перебора, счётчик не трогаем.
       return res.status(401).json({ error: 'доступ истёк' });
     }
+    loginRateLimit.recordSuccess(req.ip, username);
     const token = auth.createSession('user', user.id, user.project_id);
     auth.setCookie(res, token);
     return res.json({ ok: true, redirect: '/' });
   }
+  loginRateLimit.recordFailure(req.ip, username);
   res.status(401).json({ error: 'неверный логин или пароль' });
 });
 app.post('/api/logout', (req, res) => {
@@ -1848,6 +1857,12 @@ app.get('/api/objects/table', (req, res) => {
       // отчёты» показывает ту же таблицу теми же строками и берёт их отсюда же: отдельный
       // эндпоинт-близнец рано или поздно разошёлся бы с этим в расчёте показаний.
       reportDay: meter.report_day || null,
+      // Выведенный из эксплуатации прибор (07.09.2026, для красной рамки на № счётчика в
+      // «Объектах»/«Автоматизированных отчётах») — этот запрос НЕ фильтрует decommissioned_at
+      // (в отличие от фонового опроса, см. allMetersWithModem): прошлые показания и место в
+      // отчётах такого прибора должны остаться видимыми, поэтому клиенту нужен явный признак,
+      // а не тихое исчезновение строки.
+      decommissioned: !!meter.decommissioned_at, decommissionedAt: meter.decommissioned_at || null,
       startReading, endReading, liveReadingMissing, consumptionKwh,
       tariffMissing, rateAtPeriodEnd, rateChangedDuringPeriod, costRub,
     };
