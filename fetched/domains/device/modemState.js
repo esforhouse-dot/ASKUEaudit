@@ -4,7 +4,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, 'data');
+// __dirname сместился при переносе файла в domains/device/ (P1-01) — путь поднимается на два
+// уровня, чтобы DATA_DIR продолжал указывать на то же fetched/data/, что и раньше (иначе кэш
+// конфигурации нагрузки/состояние модемов начал бы молча писаться в новую пустую директорию).
+const DATA_DIR = path.join(__dirname, '..', '..', 'data');
 
 function readJson(file, fallback) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fallback; }
