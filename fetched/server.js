@@ -913,6 +913,30 @@ setInterval(tickAlerts, ALERT_TICK_MS);
 setTimeout(tickAlerts, 3 * 60 * 1000);
 setTimeout(rotateReadings, 30000);
 
+// ── Журнал критических действий (P0-09) — см. db.js audit_logs, вызывается точечно из
+// маршрутов ниже (смена тарифа, удаление счётчика/модема, impersonation, сброс пароля).
+// НЕ должен ронять основной запрос при сбое (try/catch) — но и не должен терять сбой молча:
+// pre-commit ревью этой задачи прямо потребовало, чтобы неудачная запись была видна в
+// pm2 logs с указанием, какое именно действие не залогировано, а не проглатывалась тихо.
+const insertAuditLogStmt = db.prepare(
+  `INSERT INTO audit_logs (at, actor_role, actor_id, actor_username, project_id, action, target, detail)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+function logAudit(req, action, target, detail) {
+  try {
+    const actorRole = req.actor ? req.actor.role : null;
+    const actorId = req.actor ? req.actor.actor_id : null;
+    let actorUsername = null;
+    if (req.actor) {
+      const table = req.actor.role === 'admin' ? 'admins' : 'users';
+      const row = db.prepare(`SELECT username FROM ${table} WHERE id = ?`).get(req.actor.actor_id);
+      actorUsername = row ? row.username : null;
+    }
+    insertAuditLogStmt.run(Date.now(), actorRole, actorId, actorUsername, req.projectId || null, action, target || null, detail || null);
+  } catch (e) {
+    console.error(`⚠️ audit_logs: не удалось записать действие "${action}" (target=${target || '—'}) —`, e.message);
+  }
+}
+
 // ── HTTP ──────────────────────────────────────────────────────────────────────
 const app = express();
 app.set('trust proxy', 1); // за nginx (SSL терминируется там, X-Forwarded-Proto прокинут)
@@ -1118,6 +1142,7 @@ app.post('/api/admin/users/:id/reset-password', auth.requireAdmin, (req, res) =>
   if (!password) return res.status(400).json({ error: 'введите новый пароль' });
   db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(auth.hashPassword(password), id);
   db.prepare("DELETE FROM sessions WHERE role = 'user' AND actor_id = ?").run(id);
+  logAudit(req, 'user.reset_password', `user:${id}`);
   res.json({ ok: true });
 });
 app.delete('/api/admin/users/:id', auth.requireAdmin, (req, res) => {
@@ -1161,10 +1186,14 @@ app.post('/api/admin/impersonate/:projectId', auth.requireAdmin, (req, res) => {
   const project = db.prepare('SELECT id FROM projects WHERE id = ?').get(projectId);
   if (!project) return res.status(404).json({ error: 'проект не найден' });
   auth.setImpersonation(req.sessionToken, projectId);
+  logAudit(req, 'impersonate.start', `project:${projectId}`);
   res.json({ ok: true });
 });
 app.post('/api/admin/stop-impersonate', auth.requireAdmin, (req, res) => {
+  // До очистки — иначе impersonating_project_id уже NULL и нечего записать в target.
+  const wasProjectId = req.actor ? req.actor.impersonating_project_id : null;
   auth.clearImpersonation(req.sessionToken);
+  logAudit(req, 'impersonate.stop', wasProjectId ? `project:${wasProjectId}` : null);
   res.json({ ok: true });
 });
 
@@ -1325,6 +1354,7 @@ app.delete('/api/modems/:id', async (req, res) => {
     db.prepare('DELETE FROM modems WHERE id = ?').run(id);
   });
   tx();
+  logAudit(req, 'modem.delete', `modem:${id}`, `imei=${modem.imei}, meters=${meters.length}`);
   for (const m of meters) { state.deleteMeterState(m.id); backfillJobs.delete(m.id); eventHistoryJobs.delete(m.id); }
   state.deleteModemState(id);
   scanJobs.delete(id);
@@ -1406,6 +1436,7 @@ app.delete('/api/meters/:id', (req, res) => {
     db.prepare('DELETE FROM readings WHERE meter_id = ?').run(id);
     db.prepare('DELETE FROM meters WHERE id = ?').run(id);
   })();
+  logAudit(req, 'meter.delete', `meter:${id}`, `addr=${meter.addr}, label=${meter.label}`);
   state.deleteMeterState(id);
   backfillJobs.delete(id);
   eventHistoryJobs.delete(id);
@@ -2490,6 +2521,7 @@ app.post('/api/site/tariff', auth.requireMaster, (req, res) => {
   if (!Number.isFinite(rate) || rate <= 0) return res.status(400).json({ error: 'тариф должен быть положительным числом' });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(b.validFrom || '')) return res.status(400).json({ error: 'некорректная дата действия' });
   insertSiteTariffStmt.run(siteId, rate, b.validFrom, Date.now());
+  logAudit(req, 'tariff.create', `site:${siteId}`, `rate=${rate}, validFrom=${b.validFrom}`);
   const history = listSiteTariffsStmt.all(siteId);
   res.json({ ok: true, current: pickCurrentTariff(history), history });
 });
@@ -2497,6 +2529,7 @@ app.delete('/api/site/tariff/:id', auth.requireMaster, (req, res) => {
   const siteId = parseInt(req.query.siteId, 10);
   if (!requireOwnSite(req, res, siteId)) return res.status(400).json({ error: 'объект не найден' });
   db.prepare('DELETE FROM site_tariffs WHERE id = ? AND site_id = ?').run(req.params.id, siteId);
+  logAudit(req, 'tariff.delete', `site:${siteId}`, `tariffId=${req.params.id}`);
   const history = listSiteTariffsStmt.all(siteId);
   res.json({ ok: true, current: pickCurrentTariff(history), history });
 });

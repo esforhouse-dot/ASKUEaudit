@@ -416,4 +416,30 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_report_log_once ON report_log(site_id, rep
 CREATE INDEX IF NOT EXISTS idx_report_log_project ON report_log(project_id, sent_at);
 `);
 
+// ── Журнал критических действий (P0-09, 10.09.2026, RECONCILIATION/05_ARCHITECTURE_DECISIONS.md
+// ADR-12) ─────────────────────────────────────────────────────────────────────────────────────
+// Вводится рано (Phase 0), не откладывается до Partner Network — домены Identity/Partner/Revenue
+// сами будут на него полагаться. Не audit-всего подряд (не пишем сюда каждое чтение) — только
+// явно перечисленный список чувствительных действий: смена тарифа объекта, удаление
+// счётчика/модема, начало/конец impersonation, сброс пароля пользователя (см. logAudit()
+// вызовы в server.js). actor_username денормализован рядом с actor_id — если сам аккаунт
+// (админ/пользователь) потом удалят, история действий не должна становиться безымянной.
+// project_id — контекст на момент действия (для action'ов админа вне impersonation — NULL,
+// это ожидаемо, не ошибка записи).
+db.exec(`
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  at INTEGER NOT NULL,
+  actor_role TEXT NOT NULL,
+  actor_id INTEGER,
+  actor_username TEXT,
+  project_id INTEGER,
+  action TEXT NOT NULL,
+  target TEXT,
+  detail TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_project ON audit_logs(project_id, at);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action, at);
+`);
+
 module.exports = db;
