@@ -1273,12 +1273,17 @@ app.post('/api/landing/text', auth.requireAdmin, (req, res) => {
 });
 
 // ── Привязка запроса к модему/счётчику текущего проекта ───────────────────────
-// Счётчик, с которым работает запрос, выбирается через ?meterId= (панель хранит текущий
-// выбранный счётчик на клиенте) — если параметр не задан/не принадлежит этому модему,
-// используется первый счётчик модема (совместимость с проектами с одним счётчиком).
+// Модем, с которым работает запрос, выбирается через ?modemId= (P1-02, ADR-14 — проект/объект
+// может иметь несколько модемов), по тому же паттерну, что уже год работает для ?meterId= ниже:
+// если параметр не задан/не принадлежит проекту, используется первый модем проекта
+// (совместимость с проектами с одним модемом — большинство сегодня, поведение не меняется).
+// Счётчик выбирается через ?meterId= аналогично, но уже в рамках выбранного модема.
 app.use((req, res, next) => {
   if (!req.projectId) { req.modem = null; req.meter = null; return next(); }
-  req.modem = db.prepare('SELECT * FROM modems WHERE project_id = ? ORDER BY id LIMIT 1').get(req.projectId) || null;
+  const modemId = parseInt(req.query.modemId, 10);
+  req.modem = (Number.isInteger(modemId)
+    ? db.prepare('SELECT * FROM modems WHERE id = ? AND project_id = ?').get(modemId, req.projectId)
+    : null) || db.prepare('SELECT * FROM modems WHERE project_id = ? ORDER BY id LIMIT 1').get(req.projectId) || null;
   if (!req.modem) { req.meter = null; return next(); }
   const meterId = parseInt(req.query.meterId, 10);
   req.meter = (Number.isInteger(meterId)
@@ -1291,12 +1296,18 @@ app.get('/api/context', (req, res) => {
   const meters = req.modem
     ? db.prepare('SELECT id, addr, label, serial_number, model, location, ct_ratio, category, site_id, verification_due, decommissioned_at FROM meters WHERE modem_id = ? ORDER BY id').all(req.modem.id)
     : [];
+  // Список модемов проекта (P1-02) — для UI-селектора, аналогично meters выше; при одном модеме
+  // на проект (сегодняшнее большинство) массив из одного элемента, фронтенд селектор не показывает.
+  const modems = req.projectId
+    ? db.prepare('SELECT id, imei, label, phone FROM modems WHERE project_id = ? ORDER BY id').all(req.projectId)
+    : [];
   res.json({
     hasModem: !!req.modem,
     hasMeter: !!req.meter,
     modem: req.modem ? { id: req.modem.id, imei: req.modem.imei, label: req.modem.label, phone: req.modem.phone } : null,
     meter: req.meter ? { id: req.meter.id, addr: req.meter.addr, label: req.meter.label } : null,
     meters,
+    modems,
   });
 });
 

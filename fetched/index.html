@@ -1231,6 +1231,20 @@
 
   <!-- ── Модем ── -->
   <div class="tab-panel" id="tab-modem">
+    <!-- P1-02 (ADR-14): виден только когда у проекта 2+ модемов — renderModemPicker скрывает
+         wrap целиком для сегодняшнего большинства (один модем на проект), поведение не меняется. -->
+    <div class="mpicker" id="modemPickerWrap" style="display:none">
+      <button type="button" class="mpicker-trigger" id="modemPickerTrigger" onclick="toggleModemPicker()">
+        <span class="mpicker-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 6h6M9 18h.01"/></svg></span>
+        <span class="mpicker-label-wrap">
+          <div class="mpicker-eyebrow">Модем</div>
+          <div class="mpicker-label-text" id="modemPickerLabel">—</div>
+        </span>
+        <span class="mpicker-chev">▾</span>
+      </button>
+      <div class="mpicker-list" id="modemPickerList"></div>
+    </div>
+
     <h2 class="sec-title">Графики · сигнал и температура</h2>
     <div class="card">
       <svg class="chart" id="chart" viewBox="0 0 800 150" preserveAspectRatio="none"></svg>
@@ -1831,13 +1845,26 @@
 const $=id=>document.getElementById(id);
 const MODEM_PWD='5492';
 let busy=false, autoTimer=null, currentModemId=null, scanTimer=null;
-let currentMeterId=null, allMeters=[];
+let currentMeterId=null, allMeters=[], allModems=[];
 let accessRole='master'; // 'limited' — роль «Пользователь», видит только раздел «Объекты» (см. checkSession)
+// P1-02 (ADR-14): тот же паттерн, что уже был у mUrl (см. ниже), но для модема — добавляет
+// modemId к пути device/GPIO-эндпоинтов, так сервер знает, с каким именно модемом проекта (их
+// может быть несколько) работает запрос. При одном модеме на проект (сегодняшнее большинство)
+// currentModemId всё равно указывает на единственный модем — поведение не меняется.
+function dUrl(path){
+  if(currentModemId==null) return path;
+  return path+(path.includes('?')?'&':'?')+'modemId='+currentModemId;
+}
 // Добавляет meterId текущего выбранного счётчика к пути мercury-эндпоинта — так сервер знает,
 // с каким именно счётчиком проекта (их может быть несколько на одной шине) работает запрос.
+// Обязательно через dUrl() сначала (P1-02): счётчик резолвится сервером В РАМКАХ уже выбранного
+// модема (server.js, middleware req.modem -> req.meter) — без modemId здесь при 2+ модемах
+// meterId мог бы совпасть со счётчиком ЧУЖОГО (не текущего) модема и сервер тихо откатился бы к
+// умолчательному счётчику НЕВЕРНОГО модема вместо ожидаемого.
 function mUrl(path){
-  if(currentMeterId==null) return path;
-  return path+(path.includes('?')?'&':'?')+'meterId='+currentMeterId;
+  const p = dUrl(path);
+  if(currentMeterId==null) return p;
+  return p+(p.includes('?')?'&':'?')+'meterId='+currentMeterId;
 }
 function meterLabel(m){
   // Модель протоколом не определяется (см. память проекта) — только то, что вручную сохранено
@@ -1886,6 +1913,34 @@ document.addEventListener('click',e=>{
     if(wrap && wrap.classList.contains('open') && !wrap.contains(e.target)) wrap.classList.remove('open');
   }
 });
+
+// P1-02 (ADR-14): пикер модема — один инстанс (в отличие от счётчика, показывается только на
+// вкладке «Модем», дублировать негде), тот же визуальный компонент (.mpicker), что у счётчика.
+function modemLabel(m){ return m.label || (m.phone ? 'модем · '+m.phone : 'модем · IMEI '+m.imei); }
+function renderModemPicker(modems){
+  const wrap=$('modemPickerWrap');
+  if(!modems || modems.length<2){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  const current=modems.find(m=>m.id===currentModemId)||modems[0];
+  $('modemPickerLabel').textContent=modemLabel(current);
+  $('modemPickerList').innerHTML=modems.map(m=>
+    `<div class="mpicker-item${m.id===currentModemId?' active':''}" onclick="selectModem(${m.id});closeModemPicker()" tabindex="0" role="button">${esc(modemLabel(m))}</div>`
+  ).join('');
+}
+function toggleModemPicker(){ $('modemPickerWrap').classList.toggle('open'); }
+function closeModemPicker(){ $('modemPickerWrap').classList.remove('open'); }
+document.addEventListener('click',e=>{
+  const wrap=$('modemPickerWrap');
+  if(wrap && wrap.classList.contains('open') && !wrap.contains(e.target)) wrap.classList.remove('open');
+});
+// Переключение модема меняет набор счётчиков/GPIO-статус целиком — проще и надёжнее заново
+// пройти весь checkContext() (тот же путь, что при первой загрузке страницы), чем точечно
+// сбрасывать зависимое состояние счётчика/регистратора по аналогии с selectMeter.
+function selectModem(id){
+  if(id===currentModemId) return;
+  currentModemId=id;
+  checkContext();
+}
 
 // ── Расположение / модель / коэфф. трансформации счётчика — редактируются по клику, сохраняются
 // через /api/mercury/config. ct_ratio — множитель для ТТ (трансформаторов тока): секретная
@@ -2128,7 +2183,7 @@ async function setPinLevel(name, high){
     renderPins(opt);
   }
   try{
-    const d=await api('/api/pin/'+name+'/level','POST',{level:high});
+    const d=await api(dUrl('/api/pin/'+name+'/level'),'POST',{level:high});
     if(d.pins) lastPins=d.pins;
     delete outPending[name];
     renderPins(lastPins);
@@ -2201,7 +2256,7 @@ function render(d){
 }
 async function saveLoadCfg(){
   setBusy(true,'Сохраняю настройку…');
-  try{ await api('/api/load/config','POST',{
+  try{ await api(dUrl('/api/load/config'),'POST',{
       feedbackPin:parseInt($('fbPin').value), feedbackActiveHigh:$('fbLevel').value==='high' });
     setBusy(false); $('msg').textContent='Настройка сохранена'; refresh(true);
     setTimeout(()=>{if(!busy)$('msg').textContent='';},1800);
@@ -2230,20 +2285,20 @@ function drawChart(points){
   const t1=new Date(points[points.length-1].t).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
   $('chartRange').textContent=t0+' — '+t1;
 }
-async function loadChart(){ try{ const d=await api('/api/history'); drawChart(d.points); }catch(e){} }
+async function loadChart(){ try{ const d=await api(dUrl('/api/history')); drawChart(d.points); }catch(e){} }
 
 // Быстрое обновление: читаем кэш состояния (мгновенно), рисуем график
 async function refresh(silent){
-  try{ render(await api('/api/status')); loadChart(); }
+  try{ render(await api(dUrl('/api/status'))); loadChart(); }
   catch(e){ if(!silent) showErr(e.message); }
 }
 // Кнопка «Обновить»: форсируем свежий опрос модема (ждём результат)
 async function forceRefresh(){
   setBusy(true,'Опрашиваю модем…');
-  try{ render(await api('/api/refresh','POST')); loadChart(); setBusy(false); }
+  try{ render(await api(dUrl('/api/refresh'),'POST')); loadChart(); setBusy(false); }
   catch(e){ setBusy(false); showErr(e.message); }
 }
-async function loadInfo(){ try{ const d=await api('/api/info'); if(d.iccid) $('iccid').textContent=d.iccid; }catch(e){} }
+async function loadInfo(){ try{ const d=await api(dUrl('/api/info')); if(d.iccid) $('iccid').textContent=d.iccid; }catch(e){} }
 // Оптимистичное управление: индикация выполнения — прямо на карточке GPO (рамка + спиннер
 // в углу). UI реагирует мгновенно, команда идёт в фоне (модем отвечает 0.3-20с).
 function gpo(action){
@@ -2256,7 +2311,7 @@ function gpo(action){
     const opt=lastPins.map(p=>p.name==='GPO'?{...p,high:on,byte:on?'C2':'C0'}:p);
     renderPins(opt);
   }
-  api('/api/gpo/'+action,'POST').then(d=>{
+  api(dUrl('/api/gpo/'+action),'POST').then(d=>{
     if(d.pins) lastPins=d.pins;
     gpoPending=false; gpoPendingAction=null;
     // финальный статус — renderLoad перерисует карточку GPO с подтверждением
@@ -2271,7 +2326,7 @@ function gpo(action){
 }
 async function sendUssd(){
   setBusy(true,'USSD-запрос…'); $('ussdOut').style.display='none';
-  try{ const d=await api('/api/ussd','POST',{code:$('ussdCode').value.trim()}); setBusy(false);
+  try{ const d=await api(dUrl('/api/ussd'),'POST',{code:$('ussdCode').value.trim()}); setBusy(false);
     $('ussdOut').style.display='block'; $('ussdOut').textContent=d.answer||'(пусто)'; $('msg').textContent='';
   }catch(e){ setBusy(false); showErr(e.message); }
 }
@@ -2333,7 +2388,7 @@ function renderMetersStatus(d){
   txt.textContent = `Приборы учёта на связи ${d.online} из ${d.total}`;
 }
 async function refreshMetersStatus(){
-  try{ renderMetersStatus(await (await fetch('/api/meters/status')).json()); }catch(e){}
+  try{ renderMetersStatus(await (await fetch(dUrl('/api/meters/status'))).json()); }catch(e){}
 }
 
 // ── Меркурий: рендер, график, опрос, настройка ──
@@ -4575,7 +4630,7 @@ switchObjTab(initialObjTab);
 
 async function checkContext(){
   let ctx;
-  try{ ctx = await (await fetch('/api/context')).json(); }catch(e){ ctx = { hasModem: true }; }
+  try{ ctx = await (await fetch(dUrl('/api/context'))).json(); }catch(e){ ctx = { hasModem: true }; }
   if(!ctx.hasModem){
     document.getElementById('addModemForm').style.display='block';
     document.getElementById('addModemDone').style.display='none';
@@ -4590,6 +4645,8 @@ async function checkContext(){
   document.getElementById('modemImei').textContent = ctx.modem.imei;
   document.getElementById('modemPhone').textContent = ctx.modem.phone || '—';
   document.getElementById('smsNum').textContent = ctx.modem.phone || 'SIM-карты этого модема';
+  allModems = ctx.modems || [];
+  renderModemPicker(allModems);
   allMeters = ctx.meters || [];
   if(currentMeterId==null || !allMeters.some(m=>m.id===currentMeterId)){
     currentMeterId = allMeters.length ? allMeters[0].id : null;
@@ -4664,7 +4721,7 @@ function renderMetersList(meters){
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 async function refreshMetersList(){
   try{
-    const d=await (await fetch('/api/meters')).json();
+    const d=await (await fetch(dUrl('/api/meters'))).json();
     allMeters = d.meters||[];
     if(currentMeterId==null || !allMeters.some(m=>m.id===currentMeterId)){
       currentMeterId = allMeters.length ? allMeters[0].id : null;
@@ -4687,7 +4744,7 @@ async function startScan(){
   btn.disabled=true; prog.style.display='block'; prog.textContent='Запускаю поиск…';
   $('scanCandidates').innerHTML='';
   try{
-    await fetch('/api/modems/scan/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from:1,to:239})});
+    await fetch(dUrl('/api/modems/scan/start'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from:1,to:239})});
   }catch(e){ prog.textContent='Ошибка запуска поиска'; btn.disabled=false; return; }
   if(scanTimer) clearInterval(scanTimer);
   scanTimer=setInterval(pollScanStatus,2000);
@@ -4695,7 +4752,7 @@ async function startScan(){
 }
 async function pollScanStatus(){
   let d;
-  try{ d=await (await fetch('/api/modems/scan/status')).json(); }catch(e){ return; }
+  try{ d=await (await fetch(dUrl('/api/modems/scan/status'))).json(); }catch(e){ return; }
   const prog=$('scanProgress'), btn=$('scanBtn');
   if(d.error){
     prog.textContent='Ошибка: '+d.error; btn.disabled=false;
@@ -4720,7 +4777,7 @@ async function addMeterFromCandidate(addr){
   const label=prompt('Название счётчика', 'Счётчик '+addr);
   if(label===null) return;
   try{
-    const r=await fetch('/api/meters',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({addr,label})});
+    const r=await fetch(dUrl('/api/meters'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({addr,label})});
     const d=await r.json();
     if(!r.ok) throw new Error(d.error||'Ошибка');
     refreshMetersList();
