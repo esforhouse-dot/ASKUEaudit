@@ -148,6 +148,12 @@ async function initDb() {
   pool = mysql.createPool({
     host: '127.0.0.1', port: 3306, user: 'irzcollector', password: DB_PASSWORD,
     database: 'irzserver4', waitForConnections: true, connectionLimit: 5,
+    // P1-03: без явного значения попытка открыть НОВОЕ соединение (например, после того как
+    // MySQL стал недоступен и пул восстанавливает погибшие коннекшны) не была ограничена по
+    // времени явно в конфиге — таймаут-гвард serializeGpioFor (30с) уже не даёт зависнуть
+    // конкретному запросу навсегда, но сам пул мог продолжать копить бесконечно висящие попытки
+    // подключения в фоне. connectTimeout ограничивает именно эту первопричину, а не симптом.
+    connectTimeout: 10000,
   });
 }
 async function queueCommand(imei, commandBytes, commandId) {
