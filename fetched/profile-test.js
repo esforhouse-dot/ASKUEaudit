@@ -1,7 +1,7 @@
 // Живой тест чтения профиля средних мощностей (почасовки/получасовки) на реальном счётчике.
 const net = require('net');
-const m = require('./mercuryProtocol.js');
-const p = require('./mercuryProfile.js');
+const m = require('./domains/metering/mercuryProtocol.js');
+const p = require('./domains/metering/mercuryProfile.js');
 
 const HOST = '147.45.212.205';
 const PORT = 35000;

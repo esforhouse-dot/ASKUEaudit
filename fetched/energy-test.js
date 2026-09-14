@@ -1,6 +1,6 @@
 // Тест команды 0x05 (накопленная энергия) на живом счётчике.
 const net = require('net');
-const m = require('./mercuryProtocol.js');
+const m = require('./domains/metering/mercuryProtocol.js');
 
 const HOST = '147.45.212.205';
 const PORT = 35000;
