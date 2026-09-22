@@ -735,6 +735,17 @@
     font:inherit; color:var(--accent); cursor:pointer; text-decoration:underline;
     text-underline-offset:2px; text-decoration-color:color-mix(in srgb, var(--accent) 35%, transparent); }
   .obj-link:hover { text-decoration-color:currentColor; }
+  /* Выведенный из эксплуатации прибор (meters.decommissioned_at) — рамка, НЕ заливка (07.09.2026,
+     просьба пользователя). Ступени срока поверки ниже красят ФОН, оставляя текст обычным —
+     здесь наоборот сигнал только через границу, текст (в т.ч. цвет ссылки-номера) не трогаем:
+     два разных смысла в одной таблице должны читаться по-разному, а не сливаться в одну и ту же
+     «тревожную» заливку. Правило идёт ПОСЛЕ .obj-link (та же специфичность — 1 класс), поэтому
+     его padding перекрывает padding:0 у .obj-link, когда классы совпадают на одной кнопке.
+     Контур через box-shadow, НЕ border (найдено design-review 07.09.2026 — тот же приём, что уже
+     применён у .reg-dot/.obj-due-over в этом же файле): border добавил бы свои 3px к box-model
+     ячейки и увеличил высоту ИМЕННО этой строки относительно соседних (высота строки таблицы
+     считается по самой высокой ячейке), а box-shadow рисуется поверх, не участвуя в раскладке. */
+  .obj-decom-badge { display:inline-block; box-shadow:inset 0 0 0 1.5px var(--err); padding:1px 7px; line-height:1.5; }
   table.obj-table tbody tr:hover td { background:color-mix(in srgb, var(--accent) 5%, transparent); }
   /* Срок поверки ПУ — четыре ступени (пороги считает objDueLevel: 90 / 30 / 7 дней и «просрочено»).
      Ступени построены на уже существующих семантических токенах --warn и --err (промежуточная
@@ -2702,6 +2713,18 @@ async function toggleDecommission(){
   // всего контекста: полный refresh сбросил бы выбранный месяц, зум регистратора и прочее.
   const m=allMeters.find(x=>x.id===currentMeterId);
   if(m){ m.decommissioned_at=mDecommissionedAt; renderMeterPicker(allMeters); }
+  // Та же правка — в уже загруженных строках «Объектов»/«Автоматизированных отчётов» (07.09.2026,
+  // просьба пользователя: без неё красная рамка появлялась только после полной перезагрузки
+  // страницы, потому что objRows/repRows — это снимок, загруженный при первом входе в раздел,
+  // а переключение вкладки в этом SPA не бьёт по серверу заново). Обе таблицы рендерятся из
+  // массивов в памяти, поэтому патч + повторный вызов render — тот же приём, что уже применён
+  // выше для renderMeterPicker, без единого сетевого запроса.
+  const patchDecom=(rows)=>{
+    const r=rows.find(x=>x.meterId===currentMeterId);
+    if(r){ r.decommissioned=!!mDecommissionedAt; r.decommissionedAt=mDecommissionedAt; }
+  };
+  patchDecom(objRows); patchDecom(repRows);
+  renderObjTable(); renderRepTable();
   $('msg').textContent = mDecommissionedAt ? 'Прибор выведен из эксплуатации' : 'Прибор возвращён в работу';
   setTimeout(()=>{if(!busy)$('msg').textContent='';},2200);
   loadAlerts();
@@ -3239,9 +3262,26 @@ function objColumnDefs(res, startHeaderTxt, endHeaderTxt, linkSerial){
     // tabindex/role и без отдельного обработчика Enter/Space.
     {key:'serial', group:'ident', label:'№ счётчика', cell:r=>{
       const txt=esc(r.serial||('адрес '+r.addr));
+      if(!r.decommissioned){
+        return linkSerial
+          ? `<td class="obj-num"><button type="button" class="obj-link" onclick="objOpenMeter(${r.meterId})" title="Открыть прибор в «Приборах учёта»">${txt}</button></td>`
+          : `<td class="obj-num">${txt}</td>`;
+      }
+      // Выведенный из эксплуатации прибор (meters.decommissioned_at) — красная рамка вокруг №
+      // счётчика (07.09.2026, просьба пользователя). Этот раздел НЕ фильтрует такие приборы (в
+      // отличие от фонового опроса), поэтому строка остаётся на месте — нужен явный визуальный
+      // сигнал, а не тихое «повисшее» отсутствие свежих показаний. Единый title на самом
+      // интерактивном элементе, а не отдельная обёртка сверху: title всегда берётся у самого
+      // глубокого элемента под курсором, поэтому title вложенной кнопки перекрыл бы title
+      // родителя — проще сразу совместить оба смысла (что выведен + что кликом открывается
+      // карточка) в одной строке подсказки.
+      const when=r.decommissionedAt?new Date(r.decommissionedAt).toLocaleDateString('ru-RU'):null;
+      const hint='Прибор выведен из эксплуатации'+(when?' '+when:'')
+        +' — опрос прекращён, история и место в отчётах за прошлые периоды сохранены.'
+        +(linkSerial?' Открыть прибор в «Приборах учёта».':'');
       return linkSerial
-        ? `<td class="obj-num"><button type="button" class="obj-link" onclick="objOpenMeter(${r.meterId})" title="Открыть прибор в «Приборах учёта»">${txt}</button></td>`
-        : `<td class="obj-num">${txt}</td>`;
+        ? `<td class="obj-num"><button type="button" class="obj-link obj-decom-badge" onclick="objOpenMeter(${r.meterId})" title="${esc(hint)}">${txt}</button></td>`
+        : `<td class="obj-num"><span class="obj-decom-badge" title="${esc(hint)}">${txt}</span></td>`;
     }},
     // Дата поверки стоит рядом с моделью и № счётчика — это такой же атрибут самого прибора.
     // Колонка «Номер на шине RS-485» отсюда убрана (05.09.2026, невостребована): адрес на шине
