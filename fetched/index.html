@@ -6,7 +6,7 @@
 <title>АСКУЭ · Панель</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap">
 <style>
   /* Швейцарская (международная типографская) система — сент. 2026, заменила неоморфизм
      от 31.08.2026 (см. память irz-ui-design-system). Принцип обратный прежнему: НИКАКИХ теней
@@ -41,8 +41,16 @@
     --card-border: 1px solid var(--line);
     --on-strong: var(--tx); --on-soft: rgba(17,19,21,.62); --wash-track: rgba(17,19,21,.09);
     --ease-out: cubic-bezier(.23,1,.32,1);
-    --font-body:'Archivo',Helvetica,Arial,sans-serif;
+    /* Golos Text вместо Archivo (редизайн 15.10.2026, UI_REDESIGN_PLAN.md): шрифт рисовался под
+       кириллицу, у Archivo её глифы проседали в fallback. */
+    --font-body:'Golos Text',system-ui,'Segoe UI',sans-serif;
     --font-mono:var(--font-body);
+    /* Единое скругление редизайна — 2px вместо нуля «швейцарского» слоя: углы читаются как
+       мягкие, но система остаётся плоской (см. завершающий слой в конце стилей). */
+    --r:2px;
+    /* Цвет ресурса — один на всю панель (вкладки «Приборов учёта», пикер ресурса «Объектов»):
+       электроэнергия синяя, вода бирюзовая, тепло оранжевое. Текстовые оттенки, ≥4.5:1 на фоне. */
+    --res-power:#0072aa; --res-water:#177585; --res-heat:#b4500f;
   }
   /* Тёмная тема — графит #23272c, а не почти-чёрный: чёрный фон с волосяными линиями читается
      мрачно и «дёшево» (жалоба 04.09.2026). Поверхности подняты ступенями (bg → card → card2),
@@ -61,6 +69,7 @@
     --pop-shadow: 0 14px 30px rgba(0,0,0,.45);
     --card-border: 1px solid var(--line);
     --on-strong:#fff; --on-soft: rgba(255,255,255,.62); --wash-track: rgba(255,255,255,.12);
+    --res-power:#4cb3e8; --res-water:#73c8d7; --res-heat:#eb9a5c;
   }
   * { box-sizing:border-box; }
   html, body { background:var(--bg); }
@@ -259,7 +268,7 @@
   .pin.power.pending { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--warn) 60%, transparent), inset 0 0 30px color-mix(in srgb, var(--warn) 10%, transparent); }
   .pin-spin { position:absolute; top:12px; right:12px; }
   .pin .btns { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
-  button { padding:11px; border:none; border-radius:11px; font-size:13px; font-weight:600;
+  button { padding:9px 14px; border:none; border-radius:11px; font-size:13px; font-weight:600;
     cursor:pointer; color:#fff; background:var(--accent); font-family:inherit; box-shadow:var(--raised-sm);
     transition:transform 160ms var(--ease-out), background 150ms ease, filter 150ms ease, box-shadow 140ms ease, color 150ms ease; }
   button:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
@@ -833,12 +842,12 @@
      кроме упоминаний тиснения). Правило одно: структуру держат линия, плашка и
      типографика, а не тень.
      ========================================================================== */
-  * { border-radius:0 !important; }
+  * { border-radius:var(--r) !important; }
   /* Исключения: круг тут несёт смысл, а не декор — спиннер, статусные точки и их пинг-кольцо
      (квадратная пульсирующая «точка связи» читается как баг, а не как приём). */
   .spin, .dot, .dot::after, .reg-dot { border-radius:50% !important; }
   body { font-feature-settings:"tnum" 1; -webkit-font-smoothing:antialiased; }
-  h1 { font:800 28px/1.1 var(--font-body); letter-spacing:-.02em; }
+  h1 { font:700 24px/1.15 var(--font-body); letter-spacing:-.01em; }
   .sec-title { font-size:11px; font-weight:700; letter-spacing:.16em; }
   .top .modem { letter-spacing:.18em; }
 
