@@ -1026,6 +1026,203 @@
     border:1px solid var(--line); }
   .obj-stub b { display:block; color:var(--tx); font-size:13px; margin-bottom:4px; }
   .obj-stub span { color:var(--muted); font-size:12.5px; line-height:1.55; }
+
+  /* ==========================================================================
+     «Приборы учёта» (редизайн, этап 3, UI_REDESIGN_PLAN.md): вкладки ресурсов, сводка,
+     список приборов + карточка выбранного, панель «Добавить прибор».
+     ========================================================================== */
+  .nav-action-btn.nav-action-primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .nav-action-btn.nav-action-primary:hover { filter:brightness(1.1); color:#fff; border-color:var(--accent); }
+  .btn-danger { background:transparent; color:var(--err); border:1px solid color-mix(in srgb, var(--err) 45%, transparent); }
+  .btn-danger:hover:not(:disabled) { background:color-mix(in srgb, var(--err) 10%, transparent); }
+
+  .res-tabs { display:flex; flex-wrap:wrap; gap:4px; border-bottom:1px solid var(--line); margin-bottom:14px; }
+  .res-tab { display:inline-flex; align-items:center; gap:8px; height:42px; padding:0 14px; margin-bottom:-1px;
+    background:transparent; color:var(--muted); border:none; border-bottom:2px solid transparent; box-shadow:none;
+    font:500 14px var(--font-body); }
+  .res-tab svg { width:16px; height:16px; flex:none; }
+  .res-tab:hover:not(.active) { color:var(--tx); }
+  .res-tab:active:not(:disabled) { transform:none; filter:none; }
+  .res-tab.active { color:var(--tx); font-weight:700; }
+  .res-tab.res-power.active { border-bottom-color:var(--res-power); } .res-tab.res-power.active svg { color:var(--res-power); }
+  .res-tab.res-water.active { border-bottom-color:var(--res-water); } .res-tab.res-water.active svg { color:var(--res-water); }
+  .res-tab.res-heat.active { border-bottom-color:var(--res-heat); }   .res-tab.res-heat.active svg { color:var(--res-heat); }
+  .res-count { min-width:20px; height:18px; padding:0 5px; display:inline-flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:700; background:var(--card2); color:var(--muted); border:1px solid var(--line); }
+  .res-tab.active .res-count { background:var(--tx); border-color:var(--tx); color:var(--bg); }
+  .res-panel { display:none; }
+  .res-panel.active { display:block; }
+
+  .mt-summary { display:flex; flex-wrap:wrap; border:1px solid var(--line); background:var(--card); margin-bottom:14px; }
+  .mt-sum { flex:1 1 170px; display:flex; flex-direction:column; gap:2px; padding:10px 16px; text-align:left;
+    border:none; border-right:1px solid var(--line); background:transparent; color:var(--tx); box-shadow:none;
+    font:inherit; cursor:default; }
+  .mt-sum:last-child { border-right:none; }
+  button.mt-sum { cursor:pointer; }
+  button.mt-sum:active:not(:disabled) { transform:none; filter:none; }
+  .mt-sum-cap { font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .mt-sum b { font-size:19px; font-weight:700; line-height:1.3; }
+  .mt-sum b small { font-size:12px; font-weight:500; color:var(--muted); }
+  .mt-sum-sub { font-size:11.5px; color:var(--muted); }
+  .mt-sum.warn { background:color-mix(in srgb, var(--warn) 9%, transparent); }
+  .mt-sum.warn b { color:var(--warn); }
+  .mt-sum.danger { background:color-mix(in srgb, var(--err) 8%, transparent); }
+  .mt-sum.danger b, .mt-sum.danger .mt-sum-cap { color:var(--err); }
+
+  .mt-empty { display:flex; flex-direction:column; gap:6px; align-items:center; text-align:center;
+    padding:36px 20px; border:1px dashed var(--line); background:var(--card); }
+  .mt-empty b { font-size:15px; }
+  .mt-empty span { max-width:460px; color:var(--muted); font-size:13px; line-height:1.5; }
+
+  .mt-layout { display:flex; flex-wrap:wrap; gap:14px; align-items:flex-start; }
+  .mt-box { background:var(--card); border:1px solid var(--line); min-width:0; }
+  .mt-list { flex:3 1 560px; }
+  .mt-card { flex:2 1 400px; padding:14px 16px 16px; }
+  .mt-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--line); }
+  .mt-chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 10px; background:var(--card);
+    color:var(--tx); border:1px solid var(--line); box-shadow:none; font:500 12px var(--font-body); }
+  .chip b { font-weight:700; color:var(--muted); }
+  .chip:hover:not(.active) { border-color:var(--accent); }
+  .chip:active:not(:disabled) { transform:none; filter:none; }
+  .chip.active { background:var(--tx); border-color:var(--tx); color:var(--bg); }
+  .chip.active b { color:var(--bg); }
+  .mt-search { margin-left:auto; height:30px; width:200px; max-width:100%; padding:0 10px; border:1px solid var(--line);
+    background:var(--card); color:var(--tx); font:13px var(--font-body); }
+  .mt-hint { font-size:12px; color:var(--muted); margin-right:auto; }
+  .mt-tool-btn { flex:none; height:28px; padding:0 10px; font-size:12px; }
+  .mt-scroll { overflow-x:auto; }
+  .mt-table { min-width:660px; }
+  .mt-row { display:grid; grid-template-columns:14px minmax(150px,1.7fr) 118px 52px 100px 92px 104px; gap:10px;
+    align-items:center; width:100%; padding:8px 12px; margin:0; text-align:left; background:transparent;
+    color:var(--tx); border:none; border-top:1px solid var(--line); box-shadow:none; font:400 13px var(--font-body); }
+  button.mt-row:hover { background:var(--card2); }
+  button.mt-row:active:not(:disabled) { transform:none; filter:none; }
+  .mt-row.active { background:color-mix(in srgb, var(--accent) 11%, transparent); box-shadow:inset 2px 0 0 var(--accent); }
+  .mt-row.active.water { background:color-mix(in srgb, var(--res-water) 13%, transparent); box-shadow:inset 2px 0 0 var(--res-water); }
+  .mt-row.decom { color:var(--muted); }
+  .mt-row.mt-head { border-top:none; background:var(--card2); font-size:11px; font-weight:600; color:var(--muted); padding-top:7px; padding-bottom:7px; }
+  .pl-row { grid-template-columns:14px minmax(150px,1.6fr) 120px 90px 120px 130px; }
+  .mt-row .num { text-align:right; white-space:nowrap; }
+  .mt-row .strong { font-weight:600; }
+  .mt-main, .mt-model { display:flex; flex-direction:column; min-width:0; }
+  .mt-main b { font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mt-main small, .mt-model small { font-size:11px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mt-main small.mt-alarm { color:var(--err); font-weight:600; }
+  .mt-addr { color:var(--muted); }
+  .mt-group { padding:10px 12px 5px; border-top:1px solid var(--line); font-size:10px; font-weight:700;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .mt-nothing { padding:22px 12px; text-align:center; color:var(--muted); font-size:13px; border-top:1px solid var(--line); }
+  .mt-due { font-size:12px; white-space:nowrap; }
+  .mt-due.none { color:var(--muted); }
+  .mt-due.soon { color:var(--warn); font-weight:600; }
+  .mt-due.over, .mt-state { justify-self:start; font-size:11px; font-weight:600; padding:2px 6px; white-space:nowrap; }
+  .mt-due.over { color:var(--err); background:color-mix(in srgb, var(--err) 10%, transparent); }
+  .mt-state { color:var(--muted); background:var(--card2); }
+  .mt-state.on { color:var(--on); background:color-mix(in srgb, var(--on) 12%, transparent); }
+  .mt-state.off { color:var(--err); background:color-mix(in srgb, var(--err) 10%, transparent); }
+  .mt-state.paused { color:var(--warn); background:color-mix(in srgb, var(--warn) 14%, transparent); }
+
+  .mc-head { display:flex; align-items:flex-start; gap:10px; }
+  .mc-head-text { flex:1; min-width:0; }
+  .mc-title { font-size:17px; font-weight:700; line-height:1.3; }
+  .mc-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+  .mc-badge { flex:none; font-size:11px; font-weight:600; padding:3px 7px; white-space:nowrap; color:var(--muted); background:var(--card2); }
+  .mc-badge.on { color:var(--on); background:color-mix(in srgb, var(--on) 12%, transparent); }
+  .mc-badge.off { color:var(--err); background:color-mix(in srgb, var(--err) 10%, transparent); }
+  .mc-badge.paused { color:var(--warn); background:color-mix(in srgb, var(--warn) 14%, transparent); }
+  .mc-warn { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; margin-top:10px; padding:8px 10px; font-size:12px;
+    color:var(--err); background:color-mix(in srgb, var(--err) 8%, transparent); border:1px solid color-mix(in srgb, var(--err) 30%, transparent); }
+  .mc-warn span { flex:1 1 200px; }
+  .mc-warn .link-btn { color:var(--err); font-weight:600; text-decoration:underline; font-size:12px; }
+  .mc-err { margin-top:10px; font-size:12px; color:var(--err); }
+  .mc-tabs { margin:10px 0 14px; gap:16px; border-bottom:1px solid var(--line); flex-wrap:nowrap; }
+  .mc-tabs .tab-btn { padding:9px 0; margin-bottom:-1px; }
+  @media (max-width:640px) { .mc-tabs { flex-wrap:nowrap; overflow-x:auto; } }
+  .mc-readings { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border:1px solid var(--line); }
+  .mc-readings > div { display:flex; flex-direction:column; gap:3px; padding:9px 12px; border-right:1px solid var(--line); min-width:0; }
+  .mc-readings > div:last-child { border-right:none; }
+  .mc-readings b { font-size:15px; font-weight:600; overflow-wrap:anywhere; }
+  .mc-readings b.mc-small { font-size:13px; }
+  .mc-readings .mc-cons { background:color-mix(in srgb, var(--accent) 9%, transparent); }
+  .mc-readings .mc-cons b { color:var(--focus-ring); }
+  .mc-cap { font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .mc-cap-row { display:flex; align-items:baseline; margin:16px 0 6px; }
+  .mc-meta { margin-left:auto; font-size:11px; color:var(--muted); }
+  .mc-note { margin-top:8px; font-size:12px; line-height:1.5; color:var(--muted); }
+  .mc-phases { display:grid; grid-template-columns:40px repeat(3,minmax(0,1fr)); border:1px solid var(--line); font-size:13px; }
+  .mc-phases > span { padding:6px 10px; text-align:right; white-space:nowrap; }
+  .mc-phases > span:nth-child(4n+1) { text-align:left; color:var(--muted); }
+  .mc-phases > span:nth-child(-n+4) { background:var(--card2); color:var(--muted); font-size:12px; }
+  .mc-phases > span:nth-child(n+9) { border-top:1px solid var(--line); }
+  .mc-kvgrid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0 16px; margin-top:6px; }
+  .mc-kvgrid .kv, .mt-card .kv { margin:0; padding:7px 0; border-radius:0; }
+  .mc-kvgrid .kv:hover, .mt-card .kv:hover { background:none; }
+  .mc-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:14px; }
+  .mc-actions .ghost { flex:none; }
+  .mc-actions.mc-danger { margin-top:18px; padding-top:14px; border-top:1px solid var(--line); }
+  .mc-saved { font-size:12px; color:var(--on); }
+  .mc-saved.err { color:var(--err); }
+  .mc-sec { margin:20px 0 6px; font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .mc-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 12px; margin-top:10px; }
+  .mc-field { display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted); min-width:0; }
+  .mc-field-wide { grid-column:1 / -1; }
+  .mc-field input, .mc-field select { width:100%; height:34px; padding:0 10px; border:1px solid var(--line);
+    background:var(--card); color:var(--tx); font:13px var(--font-body); }
+  @media (max-width:480px) { .mc-form, .mc-kvgrid { grid-template-columns:minmax(0,1fr); } }
+  .mc-life { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+  .mc-life .ghost { flex:none; }
+  .mc-backfill { margin-bottom:10px; padding:10px 12px; font-size:12px; color:var(--muted); background:var(--card2); border:1px solid var(--line); }
+  .mt-card .month-nav { justify-content:flex-start; }
+  .mc-scroll { overflow-x:auto; }
+  table.mc-energy { width:100%; min-width:460px; border-collapse:collapse; font-size:12.5px; white-space:nowrap; }
+  table.mc-energy th { padding:7px 8px; text-align:right; font-weight:600; color:var(--muted); background:var(--card2); border-bottom:1px solid var(--line); }
+  table.mc-energy th:first-child { text-align:left; }
+  table.mc-energy td { padding:7px 8px !important; }
+  .mc-events-head { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:10px 12px; font-size:13px;
+    background:var(--card2); border:1px solid var(--line); }
+  .mc-events-head span { flex:1 1 240px; line-height:1.45; }
+  .mc-events-head button { flex:none; }
+  .mc-events { margin-top:10px; font-size:12px; color:var(--muted); }
+  .mc-events .kv { color:var(--tx); }
+
+  /* Панель «Добавить прибор» — выезжает справа поверх раздела с подложкой. */
+  .drawer { position:fixed; top:0; right:0; z-index:50; width:440px; max-width:100%; height:100vh; height:100dvh;
+    display:flex; flex-direction:column; gap:14px; padding:18px 20px; overflow-y:auto; background:var(--card);
+    border-left:1px solid var(--line); box-shadow:var(--pop-shadow); transform:translateX(105%);
+    transition:transform 220ms var(--ease-out); visibility:hidden; }
+  body.drawer-open .drawer { transform:none; visibility:visible; }
+  .drawer-scrim { display:none; position:fixed; inset:0; z-index:45; background:rgba(17,19,21,.35); }
+  body.drawer-open .drawer-scrim { display:block; }
+  @media (prefers-reduced-motion:reduce) { .drawer { transition:none; } }
+  .drawer-head { display:flex; align-items:center; }
+  .drawer-head h2 { margin:0; font-size:18px; }
+  .drawer-close { margin-left:auto; width:34px; height:34px; padding:0; display:inline-flex; align-items:center; justify-content:center;
+    background:transparent; color:var(--muted); box-shadow:none; }
+  .drawer-close svg { width:18px; height:18px; }
+  .seg { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border:1px solid var(--line); }
+  .seg button { height:38px; padding:0 8px; background:var(--card); color:var(--tx); box-shadow:none; font:500 12.5px var(--font-body); }
+  .seg button + button { border-left:1px solid var(--line); }
+  .seg button.active { background:var(--tx); color:var(--bg); font-weight:600; }
+  .seg button:active:not(:disabled) { transform:none; filter:none; }
+  .drawer-body { display:flex; flex-direction:column; }
+  .drawer-box { display:flex; flex-direction:column; gap:8px; padding:12px; background:var(--card2); border:1px solid var(--line); }
+  .drawer-box > span { font-size:12px; line-height:1.5; color:var(--muted); }
+  .drawer-box > button { align-self:flex-start; }
+  .drawer-progress { font-size:12px; color:var(--muted); }
+  #scanCandidates .kv { margin:0; padding:6px 0; }
+  .mt-layout.wide .mt-card { flex-basis:100%; }
+  /* Телефон: в строке остаётся главное — помещение, расход, поверка (у воды — показание и
+     состояние); модель, адрес и показание есть в карточке прибора. Без горизонтальной прокрутки. */
+  @media (max-width:640px) {
+    .mt-table { min-width:0; }
+    .mt-row { grid-template-columns:14px minmax(0,1fr) 76px 88px; gap:8px; }
+    .mt-row > :nth-child(3), .mt-row > :nth-child(4), .mt-row > :nth-child(5) { display:none; }
+    .mt-row.pl-row { grid-template-columns:14px minmax(0,1fr) 92px 96px; }
+    .mt-row.pl-row > :nth-child(5) { display:block; }
+    .mt-row.pl-row > :nth-child(3), .mt-row.pl-row > :nth-child(4) { display:none; }
+    .mt-search { margin-left:0; width:100%; }
+  }
 </style>
 <script>
   // Тема применяется синхронно ДО отрисовки body — иначе страница на долю секунды мигает
@@ -1072,7 +1269,6 @@
     <div class="side-cap">Учёт</div>
     <button class="side-btn" data-tab="objects" onclick="switchTab('objects')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="3" width="16" height="18"/><path d="M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2"/></svg><span>Объекты</span></button>
     <button class="side-btn" data-tab="meter" onclick="switchTab('meter')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 13l4-4"/></svg><span>Приборы учёта</span></button>
-    <button class="side-btn" data-tab="askue" onclick="switchTab('askue')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>АСКУЭ</span></button>
     <button class="side-btn" data-tab="reports" onclick="switchTab('reports')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 13h7M9 17h5"/></svg><span>Отчёты</span></button>
     <button class="side-btn" data-tab="payments" onclick="switchTab('payments')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg><span>Тарифы</span></button>
     <button class="side-btn" data-tab="register" onclick="switchTab('register')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><span>Регистратор</span></button>
@@ -1186,6 +1382,12 @@
         </div>
       </div>
     </div>
+  </div>
+  <div class="nav-actions" id="meterQuickActions" style="display:none">
+    <button type="button" class="nav-action-btn nav-action-primary" onclick="openAddDrawer()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" width="14" height="14" style="flex:none"><path d="M12 5v14M5 12h14"/></svg>
+      Добавить прибор
+    </button>
   </div>
   <div class="nav-actions" id="objQuickNav" style="display:none">
     <div class="month-nav" style="margin-bottom:0">
@@ -1357,273 +1559,208 @@
       <div class="ussd-out" id="ussdOut"></div>
     </div>
 
-    <h2 class="sec-title">Шина RS-485</h2>
-    <div class="card">
-      <div id="metersList" style="margin-bottom:12px"></div>
-      <button class="ghost" onclick="startScan()" id="scanBtn">Найти счётчики на шине</button>
-      <div id="scanProgress" style="color:var(--muted);font-size:12px;margin-top:8px;display:none"></div>
-      <div id="scanCandidates" style="margin-top:10px"></div>
-    </div>
-
   </div>
 
-  <!-- ── Приборы учёта ── -->
+  <!-- ── Приборы учёта (редизайн, этап 3, UI_REDESIGN_PLAN.md) ──
+       Вкладки ресурсов (электроэнергия / вода / тепло) → слева список приборов, справа карточка
+       выбранного. В карточку переехало всё, что раньше было разбросано по «Приборам учёта»
+       (выпадающий выбор + поля с карандашами + вкладки) и отдельному разделу «АСКУЭ» (энергия по
+       тарифам, почасовка). Поиск на шине и «Пульсары» — в панели «Добавить прибор». -->
   <div class="tab-panel" id="tab-meter">
-    <button type="button" class="nav-action-btn" id="objBackBtn" style="display:none;margin-top:18px" onclick="objReturnToObjects()">
+    <button type="button" class="nav-action-btn" id="objBackBtn" style="display:none;margin-bottom:12px" onclick="objReturnToObjects()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" style="flex:none"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
       Вернуться в Объекты
     </button>
-    <div id="meterNoneNote" style="color:var(--muted);font-size:13px;margin:22px 0 10px;display:none">Счётчик не добавлен</div>
-    <div class="mpicker" id="meterPickerWrap" style="display:none">
-      <button type="button" class="mpicker-trigger" id="meterPickerTrigger" onclick="toggleMeterPicker()">
-        <span class="mpicker-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
-        <span class="mpicker-label-wrap">
-          <div class="mpicker-eyebrow">Прибор учёта</div>
-          <div class="mpicker-label-text" id="meterPickerLabel">—</div>
-        </span>
-        <span class="mpicker-chev">▾</span>
-      </button>
-      <div class="mpicker-list" id="meterPickerList"></div>
+
+    <div class="res-tabs" role="tablist" aria-label="Ресурс">
+      <button type="button" role="tab" class="res-tab res-power" data-res="power" onclick="switchMeterRes('power')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Электроэнергия<span class="res-count" id="resCountPower">0</span></button>
+      <button type="button" role="tab" class="res-tab res-water" data-res="water" onclick="switchMeterRes('water')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg>Вода<span class="res-count" id="resCountWater">0</span></button>
+      <button type="button" role="tab" class="res-tab res-heat" data-res="heat" onclick="switchMeterRes('heat')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-3 2-4 2-6 2 1 3 3 3 3s1-3 0-7z"/></svg>Тепло<span class="res-count" id="resCountHeat">0</span></button>
     </div>
 
-    <div class="minfo" id="meterInfoWrap" style="display:none">
-      <div class="minfo-row">
-        <span class="minfo-label">Расположение</span>
-        <span class="minfo-val" id="mLocationVal" onclick="editMinfo('location')" tabindex="0" role="button"></span>
-        <input class="minfo-input" id="mLocationInput" style="display:none" placeholder="напр. ГРЩ-2, этаж 1, ячейка 3">
-        <button type="button" class="minfo-edit-btn" id="mLocationEditBtn" onclick="editMinfo('location')" title="Редактировать" aria-label="Редактировать"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
-        <button type="button" class="minfo-save-btn" id="mLocationSaveBtn" style="display:none" onclick="saveMinfo('location')" title="Сохранить" aria-label="Сохранить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>
+    <!-- ═══ Электроэнергия ═══ -->
+    <div class="res-panel" id="resPanelPower">
+      <div class="mt-summary" id="mtSummary"></div>
+      <div id="meterNoneNote" class="mt-empty" style="display:none">
+        <b>Электросчётчиков пока нет</b>
+        <span>Найдите их на шине RS-485 или добавьте по адресу — кнопка «Добавить прибор» вверху.</span>
       </div>
-      <div class="minfo-row">
-        <span class="minfo-label">Модель</span>
-        <span class="minfo-val" id="mModelVal" onclick="editMinfo('model')" tabindex="0" role="button"></span>
-        <input class="minfo-input" id="mModelInput" style="display:none" placeholder="напр. Меркурий 230">
-        <button type="button" class="minfo-edit-btn" id="mModelEditBtn" onclick="editMinfo('model')" title="Редактировать" aria-label="Редактировать"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
-        <button type="button" class="minfo-save-btn" id="mModelSaveBtn" style="display:none" onclick="saveMinfo('model')" title="Сохранить" aria-label="Сохранить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>
-      </div>
-      <div class="minfo-row">
-        <span class="minfo-label">Коэфф. ТТ</span>
-        <span class="minfo-val" id="mCt_ratioVal" onclick="editMinfo('ct_ratio')" tabindex="0" role="button"></span>
-        <input class="minfo-input" id="mCt_ratioInput" type="number" min="0.01" step="any" style="display:none" placeholder="напр. 60 (для ТТ 300/5)">
-        <button type="button" class="minfo-edit-btn" id="mCt_ratioEditBtn" onclick="editMinfo('ct_ratio')" title="Редактировать" aria-label="Редактировать"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
-        <button type="button" class="minfo-save-btn" id="mCt_ratioSaveBtn" style="display:none" onclick="saveMinfo('ct_ratio')" title="Сохранить" aria-label="Сохранить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>
-      </div>
-      <div class="minfo-row">
-        <span class="minfo-label">Срок поверки ПУ</span>
-        <span class="minfo-val" id="mVerification_dueVal" onclick="editMinfo('verification_due')" tabindex="0" role="button"></span>
-        <input class="minfo-input" id="mVerification_dueInput" type="date" style="display:none">
-        <button type="button" class="minfo-edit-btn" id="mVerification_dueEditBtn" onclick="editMinfo('verification_due')" title="Редактировать" aria-label="Редактировать"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
-        <button type="button" class="minfo-save-btn" id="mVerification_dueSaveBtn" style="display:none" onclick="saveMinfo('verification_due')" title="Сохранить" aria-label="Сохранить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>
-      </div>
-      <div class="minfo-row">
-        <span class="minfo-label">Объект</span>
-        <span class="minfo-val" id="mSiteVal" onclick="editSiteMinfo()" tabindex="0" role="button"></span>
-        <div class="mcat-picker" id="mSitePickerWrap" style="display:none">
-          <button type="button" class="mcat-trigger" onclick="toggleSiteList()">
-            <span id="mSiteTriggerLabel">—</span>
-            <span class="mcat-chev">▾</span>
-          </button>
-          <div class="mcat-list" id="mSiteList"></div>
-        </div>
-        <button type="button" class="minfo-edit-btn" id="mSiteEditBtn" onclick="editSiteMinfo()" title="Редактировать" aria-label="Редактировать"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
-      </div>
-      <div class="minfo-row">
-        <span class="minfo-label">Категория</span>
-        <span class="minfo-val" id="mCategoryVal" onclick="editMinfo('category')" tabindex="0" role="button"></span>
-        <div class="mcat-picker" id="mCategoryPickerWrap" style="display:none">
-          <button type="button" class="mcat-trigger" onclick="toggleCategoryList()">
-            <span id="mCategoryTriggerLabel">—</span>
-            <span class="mcat-chev">▾</span>
-          </button>
-          <div class="mcat-list" id="mCategoryList"></div>
-        </div>
-        <button type="button" class="minfo-edit-btn" id="mCategoryEditBtn" onclick="editMinfo('category')" title="Редактировать" aria-label="Редактировать"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
-      </div>
-      <div style="color:var(--muted);font-size:12px;margin-top:2px">
-        Объект — какая площадка/здание проекта показывает этот счётчик в разделе «Объекты» (создаёт объекты
-        администратор). Категория — какая из вкладок ВНУТРИ выбранного объекта (Аренда/Технические/
-        Коммерческие учёты). Пока не указано хотя бы одно из двух, счётчик в разделе «Объекты» не отображается.
-      </div>
-    </div>
-
-    <div id="meterErrLine" style="display:none;color:var(--err);font-size:12px;margin-bottom:12px"></div>
-
-    <div class="tabs">
-      <button class="tab-btn" data-msub="readings" onclick="switchMeterTab('readings')"><span class="tab-btn-label">Показания</span></button>
-      <button class="tab-btn" data-msub="events" onclick="switchMeterTab('events')"><span class="tab-btn-label">Журнал событий</span></button>
-      <button class="tab-btn" data-msub="settings" onclick="switchMeterTab('settings')"><span class="tab-btn-label">Настройка счётчика</span></button>
-    </div>
-
-    <div class="subtab-panel" id="msub-readings">
-      <div class="card">
-        <div class="kv"><span class="k">U фаза A</span><span class="v" id="mUA">—</span></div>
-        <div class="kv"><span class="k">U фаза B</span><span class="v" id="mUB">—</span></div>
-        <div class="kv"><span class="k">U фаза C</span><span class="v" id="mUC">—</span></div>
-        <div class="kv"><span class="k">Частота сети</span><span class="v" id="mFreq">—</span></div>
-        <div class="kv"><span class="k">Ток A</span><span class="v" id="mIA">—</span></div>
-        <div class="kv"><span class="k">Ток B</span><span class="v" id="mIB">—</span></div>
-        <div class="kv"><span class="k">Ток C</span><span class="v" id="mIC">—</span></div>
-        <div class="kv"><span class="k">Мощность (P)</span><span class="v" id="mPower">—</span></div>
-        <div class="kv"><span class="k">Реактивная мощность (Q)</span><span class="v" id="mPowerQ">—</span></div>
-        <div class="kv"><span class="k">Полная мощность (S)</span><span class="v" id="mPowerS">—</span></div>
-        <div class="kv"><span class="k">cos φ</span><span class="v" id="mPF">—</span></div>
-        <div class="kv"><span class="k">Температура счётчика</span><span class="v" id="mTemp">—</span></div>
-      </div>
-      <div class="tamper-banner" id="tamperBanner">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span>⚠ Тревоги счётчика: <span id="tamperList"></span></span>
-          <button onclick="acknowledgeEvents()" style="margin-left:auto;background:var(--err);padding:6px 12px;font-size:12px">Принять</button>
-        </div>
-      </div>
-      <div class="row-btns">
-        <button class="nav-action-btn" id="mRefreshBtn" onclick="mercuryForceRefresh()">Опросить счётчик сейчас</button>
-      </div>
-    </div>
-
-    <div class="subtab-panel" id="msub-events">
-      <div class="card">
-        <div id="eventHistoryList" style="font-size:12px">Открой этот раздел, чтобы проверить журналы счётчика.</div>
-      </div>
-    </div>
-
-    <div class="subtab-panel" id="msub-settings">
-      <div class="card">
-        <div class="kv"><span class="k">Серийный номер</span><span class="v" id="mSerial">—</span></div>
-        <div class="kv"><span class="k">Дата выпуска</span><span class="v" id="mMfgDate">—</span></div>
-        <div class="kv"><span class="k">Текущий тариф</span><span class="v" id="mTariff">—</span></div>
-        <div class="set-row">
-          <label>Сетевой адрес</label>
-          <div class="set-in"><input id="mCfgAddr" type="number" min="0" max="239"></div>
-        </div>
-        <div class="set-row">
-          <label>Пароль (цифры)</label>
-          <div class="set-in"><input id="mCfgPass" maxlength="6"></div>
-        </div>
-        <div class="set-row">
-          <label>Период опроса, с</label>
-          <div class="set-in">
-            <input id="mCfgInterval" type="number" min="15">
-            <button class="b-off" onclick="saveMercuryCfg()" style="flex:none;padding:10px 16px">Сохранить</button>
+      <div class="mt-layout" id="mtLayout">
+        <section class="mt-box mt-list" aria-label="Электросчётчики">
+          <div class="mt-toolbar">
+            <div class="mt-chips" id="mtFilters"></div>
+            <input type="search" class="mt-search" id="mtSearch" placeholder="Помещение, №, адрес" aria-label="Поиск прибора" oninput="renderMeterTable()">
           </div>
-        </div>
-        <div class="set-row" style="border-top:1px solid var(--line);margin-top:14px;padding-top:16px;align-items:flex-start">
-          <label>Эксплуатация</label>
-          <div class="set-in" style="flex-direction:column;align-items:flex-start;gap:9px">
-            <div id="mDecomState" style="font-size:13px">—</div>
-            <button class="ghost" id="mDecomBtn" style="flex:none;padding:9px 15px" onclick="toggleDecommission()">—</button>
-            <div style="color:var(--muted);font-size:12px;line-height:1.5;max-width:520px">
-              Выведенный прибор перестаёт опрашиваться и не поднимает инцидентов — шина не тратится
-              на счётчик, которого физически нет. История, показания и место в отчётах за прошлые
-              периоды сохраняются полностью.
+          <div class="mt-scroll"><div class="mt-table" id="mtTable"></div></div>
+        </section>
+
+        <aside class="mt-box mt-card" id="meterInfoWrap" aria-label="Карточка прибора">
+          <div class="mc-head">
+            <div class="mc-head-text">
+              <div class="mc-title" id="mcTitle">—</div>
+              <div class="mc-sub" id="mcSub"></div>
+            </div>
+            <span class="mc-badge" id="mcBadge"></span>
+          </div>
+          <div class="mc-warn" id="mcVerifyWarn" style="display:none"></div>
+          <div id="meterErrLine" class="mc-err" style="display:none"></div>
+          <div class="tabs mc-tabs" role="tablist" aria-label="Разделы прибора">
+            <button class="tab-btn" data-msub="overview" onclick="switchMeterTab('overview')"><span class="tab-btn-label">Обзор</span></button>
+            <button class="tab-btn" data-msub="profile" onclick="switchMeterTab('profile')"><span class="tab-btn-label">Профиль</span></button>
+            <button class="tab-btn" data-msub="energy" onclick="switchMeterTab('energy')"><span class="tab-btn-label">Энергия</span></button>
+            <button class="tab-btn" data-msub="events" onclick="switchMeterTab('events')"><span class="tab-btn-label">Журнал</span></button>
+            <button class="tab-btn" data-msub="passport" onclick="switchMeterTab('passport')"><span class="tab-btn-label">Паспорт</span></button>
+          </div>
+
+          <!-- Обзор -->
+          <div class="subtab-panel" id="msub-overview">
+            <div class="mc-readings">
+              <div><span class="mc-cap" id="mcStartCap">На начало месяца</span><b id="mcStart">—</b></div>
+              <div><span class="mc-cap">Сейчас</span><b id="mcEnd">—</b></div>
+              <div class="mc-cons"><span class="mc-cap" id="mcConsCap">Расход за месяц</span><b id="mcCons">—</b></div>
+            </div>
+            <div class="mc-note">Показания — по счётчику (кВт·ч, без учёта ТТ); расход — с учётом коэффициента ТТ.</div>
+            <div class="mc-cap-row"><span class="mc-cap">Сеть сейчас</span><span class="mc-meta" id="mcPolled"></span></div>
+            <div class="mc-phases">
+              <span></span><span>A</span><span>B</span><span>C</span>
+              <span>U</span><span id="mUA">—</span><span id="mUB">—</span><span id="mUC">—</span>
+              <span>I</span><span id="mIA">—</span><span id="mIB">—</span><span id="mIC">—</span>
+            </div>
+            <div class="mc-kvgrid">
+              <div class="kv"><span class="k">P</span><span class="v" id="mPower">—</span></div>
+              <div class="kv"><span class="k">Q</span><span class="v" id="mPowerQ">—</span></div>
+              <div class="kv"><span class="k">S</span><span class="v" id="mPowerS">—</span></div>
+              <div class="kv"><span class="k">Частота</span><span class="v" id="mFreq">—</span></div>
+              <div class="kv"><span class="k">cos φ</span><span class="v" id="mPF">—</span></div>
+              <div class="kv"><span class="k">t° счётчика</span><span class="v" id="mTemp">—</span></div>
+            </div>
+            <div class="tamper-banner" id="tamperBanner">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <span>⚠ Тревоги счётчика: <span id="tamperList"></span></span>
+                <button onclick="acknowledgeEvents()" style="margin-left:auto;background:var(--err);padding:6px 12px;font-size:12px">Принять</button>
+              </div>
+            </div>
+            <div class="mc-actions">
+              <button type="button" id="mRefreshBtn" onclick="mercuryForceRefresh()">Опросить сейчас</button>
+              <button type="button" class="ghost" onclick="switchMeterTab('profile')">Почасовой профиль</button>
             </div>
           </div>
-        </div>
+
+          <!-- Профиль (бывший «АСКУЭ → Почасовое потребление») -->
+          <div class="subtab-panel" id="msub-profile">
+            <div id="backfillBox" class="mc-backfill" style="display:none">
+              Загружаю историю из памяти счётчика: <span id="backfillProgress">—</span>
+            </div>
+            <div class="month-nav">
+              <button type="button" class="month-nav-arrow" id="monthPrevBtn" onclick="shiftMonth(-1)" aria-label="Предыдущий месяц">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+              </button>
+              <div class="month-picker" id="monthPicker">
+                <button type="button" class="month-picker-trigger" onclick="toggleMonthPicker()">
+                  <span class="month-picker-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>
+                  <span class="month-picker-label" id="monthPickerLabel">—</span>
+                  <span class="month-picker-chev">▾</span>
+                </button>
+                <div class="month-picker-list" id="monthPickerList"></div>
+              </div>
+              <button type="button" class="month-nav-arrow" id="monthNextBtn" onclick="shiftMonth(1)" aria-label="Следующий месяц">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+              </button>
+            </div>
+            <div class="profile-wrap"><table class="profile" id="profileTable"></table></div>
+            <div class="profile-legend"><span>меньше</span><span class="grad"></span><span>больше</span>
+              <span class="key" title="Профиль счётчика за этот час не собран — значение восстановлено из разности накопленной энергии. Сумма верна, привязка к часу грубее."><i class="est">0,08</i> расчётное</span>
+              <span class="key" title="Интервал накоплен не полностью: у профиля это флаг самого счётчика, у расчётного значения — растянувшийся интервал опроса."><i class="inc">0,08</i> неполный срез</span>
+              <span style="margin-left:auto" id="profileMeta"></span></div>
+            <div class="mc-note">Значения — по счётчику, кВт·ч за час, без учёта коэффициента ТТ.</div>
+          </div>
+
+          <!-- Энергия по тарифам (бывший «АСКУЭ → Накопленная энергия») -->
+          <div class="subtab-panel" id="msub-energy">
+            <div class="mc-scroll">
+              <table class="mc-energy">
+                <thead><tr><th>Тариф</th><th>Активная +, кВт·ч</th><th>Активная −, кВт·ч</th><th>Реактивная +, квар·ч</th><th>Реактивная −, квар·ч</th></tr></thead>
+                <tbody id="energyTbody"></tbody>
+              </table>
+            </div>
+            <div class="mc-note">Накоплено с начала эксплуатации счётчика, не сбрасывается. «+» — потреблено из сети, «−» — отдано в сеть. Текущий тариф прибора — во вкладке «Паспорт».</div>
+          </div>
+
+          <!-- Журнал событий -->
+          <div class="subtab-panel" id="msub-events">
+            <div class="mc-events-head">
+              <span>Журналы читаются из самого счётчика: вскрытие корпуса и клеммной крышки, магнитное поле, перерывы питания, изменения настроек.</span>
+              <button type="button" onclick="loadEventHistory()">Прочитать журналы</button>
+            </div>
+            <div id="eventHistoryList" class="mc-events">Около 40 запросов к счётчику по общей шине, обычно 10–20 секунд.</div>
+          </div>
+
+          <!-- Паспорт: всё редактируемое о приборе — одной формой и одной кнопкой -->
+          <div class="subtab-panel" id="msub-passport">
+            <div class="mc-form">
+              <label class="mc-field">Расположение<input id="pfLocation" placeholder="напр. ГРЩ-2, этаж 1, ячейка 3"></label>
+              <label class="mc-field">Модель<input id="pfModel" placeholder="напр. Меркурий 230"></label>
+              <label class="mc-field">Коэффициент ТТ<input id="pfCt" type="number" min="0.01" step="any" placeholder="1 — без ТТ"></label>
+              <label class="mc-field">Поверка до<input id="pfVerify" type="date"></label>
+              <label class="mc-field">Объект<select id="pfSite"></select></label>
+              <label class="mc-field">Категория<select id="pfCategory"></select></label>
+              <label class="mc-field">Арендатор<input id="pfTenant" placeholder="не указан"></label>
+              <label class="mc-field">Наименование аренды<input id="pfRental" placeholder="не указано"></label>
+            </div>
+            <div class="mc-note">Объект и категория решают, где прибор показан в «Объектах»: пока не указано хотя бы одно из двух, там его нет.</div>
+            <div class="mc-actions">
+              <button type="button" onclick="savePassport()">Сохранить паспорт</button>
+              <span class="mc-saved" id="pfMsg"></span>
+            </div>
+
+            <div class="mc-sec">Прибор и связь</div>
+            <div class="kv"><span class="k">Заводской номер</span><span class="v" id="mSerial">—</span></div>
+            <div class="kv"><span class="k">Дата выпуска</span><span class="v" id="mMfgDate">—</span></div>
+            <div class="kv"><span class="k">Текущий тариф</span><span class="v" id="mTariff">—</span></div>
+            <div class="mc-form">
+              <label class="mc-field">Сетевой адрес<input id="mCfgAddr" type="number" min="0" max="239"></label>
+              <label class="mc-field">Пароль (цифры)<input id="mCfgPass" maxlength="6"></label>
+            </div>
+            <div class="kv"><span class="k">Период опроса</span><span class="v" id="mCfgInterval">—</span></div>
+            <div class="mc-actions"><button type="button" class="ghost" onclick="saveMercuryCfg()">Сохранить связь</button></div>
+
+            <div class="mc-sec">Эксплуатация</div>
+            <div class="mc-life">
+              <div id="mDecomState" style="font-size:13px">—</div>
+              <button class="ghost" id="mDecomBtn" onclick="toggleDecommission()">—</button>
+            </div>
+            <div class="mc-note">Выведенный прибор перестаёт опрашиваться и не поднимает инцидентов — шина не тратится на счётчик, которого физически нет. История, показания и место в отчётах за прошлые периоды сохраняются полностью.</div>
+            <div class="mc-actions mc-danger"><button type="button" class="btn-danger" onclick="deleteMeter(currentMeterId)">Удалить прибор</button></div>
+          </div>
+        </aside>
       </div>
     </div>
 
-    <!-- ── Счётчики импульсов (22.09.2026) — отдельный подраздел «Приборы учёта», независимый от
-         выбора счётчика Меркурия выше (другой прибор, другой протокол, свой список). ── -->
-    <h2 class="sec-title">Счётчики импульсов (вода)</h2>
-    <div class="card" id="pulseMetersCard">
-      <div id="pulseMetersEmpty" style="color:var(--muted);font-size:13px;display:none">Счётчики импульсов не добавлены</div>
-      <div id="pulseMetersList"></div>
-      <div class="row-btns">
-        <button type="button" class="nav-action-btn" onclick="togglePulseAddForm()" id="pulseAddToggleBtn">Добавить счётчик импульсов</button>
+    <!-- ═══ Вода («Пульсар») ═══ -->
+    <div class="res-panel" id="resPanelWater">
+      <div id="pulseMetersEmpty" class="mt-empty" style="display:none">
+        <b>Счётчиков воды пока нет</b>
+        <span>Вода подключается через счётчик импульсов «Пульсар» на той же шине RS-485 — кнопка «Добавить прибор» вверху.</span>
       </div>
-      <div id="pulseAddForm" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
-        <div class="set-row">
-          <label>Серийный № прибора «Пульсар»</label>
-          <div class="set-in"><input id="pulseAddSerial" placeholder="напр. 5015735"></div>
-        </div>
-        <div class="set-row">
-          <label>Канал (1—16)</label>
-          <div class="set-in"><input id="pulseAddChannel" type="number" min="1" max="16" value="1" style="max-width:90px"></div>
-        </div>
-        <div class="set-row">
-          <label>Название</label>
-          <div class="set-in"><input id="pulseAddLabel" placeholder="напр. Вода ХВС, ИТП"></div>
-        </div>
-        <div class="set-row">
-          <label>Вес импульса, м³</label>
-          <div class="set-in"><input id="pulseAddWeight" type="number" step="any" min="0" placeholder="напр. 0.01" style="max-width:120px"></div>
-        </div>
-        <div class="set-row">
-          <label>Расположение</label>
-          <div class="set-in"><input id="pulseAddLocation" placeholder="напр. ИТП, ввод ХВС"></div>
-        </div>
-        <div class="row-btns">
-          <button type="button" class="b-off" onclick="submitPulseAdd()">Сохранить</button>
-          <button type="button" class="ghost" onclick="togglePulseAddForm()">Отмена</button>
-        </div>
-        <div id="pulseAddErr" style="display:none;color:var(--err);font-size:12px;margin-top:8px"></div>
-      </div>
-      <div style="color:var(--muted);font-size:12px;margin-top:12px">
-        Адрес прибора на шине — его серийный номер с этикетки (не нужно сканировать, в отличие от
-        Меркурия). Один прибор «Пульсар» несёт до нескольких независимых счётчиков (по каналам) —
-        добавляйте по одному счётчику импульсов на каждый задействованный канал одного и того же серийника.
-      </div>
-    </div>
-  </div>
-
-  <!-- ── АСКУЭ (графики и почасовка) ── -->
-  <div class="tab-panel" id="tab-askue">
-    <div class="mpicker" id="askueMeterPickerWrap" style="display:none">
-      <button type="button" class="mpicker-trigger" id="askueMeterPickerTrigger" onclick="toggleMeterPicker('askue')">
-        <span class="mpicker-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
-        <span class="mpicker-label-wrap">
-          <div class="mpicker-eyebrow">Прибор учёта</div>
-          <div class="mpicker-label-text" id="askueMeterPickerLabel">—</div>
-        </span>
-        <span class="mpicker-chev">▾</span>
-      </button>
-      <div class="mpicker-list" id="askueMeterPickerList"></div>
-    </div>
-
-    <h2 class="sec-title">Накопленная энергия по тарифам</h2>
-    <div class="card" style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap">
-        <thead>
-          <tr style="color:var(--muted);text-align:left">
-            <th style="padding:8px 10px;border-bottom:1px solid var(--line)">Тариф</th>
-            <th style="padding:8px 10px;border-bottom:1px solid var(--line);text-align:right">Активная +, кВт·ч</th>
-            <th style="padding:8px 10px;border-bottom:1px solid var(--line);text-align:right">Активная −, кВт·ч</th>
-            <th style="padding:8px 10px;border-bottom:1px solid var(--line);text-align:right">Реактивная +, квар·ч</th>
-            <th style="padding:8px 10px;border-bottom:1px solid var(--line);text-align:right">Реактивная −, квар·ч</th>
-          </tr>
-        </thead>
-        <tbody id="energyTbody"></tbody>
-      </table>
-      <div style="color:var(--muted);font-size:11px;margin-top:10px">
-        Значения накоплены с начала эксплуатации счётчика (не сбрасываются). «+» — потреблено из сети,
-        «−» — отдано в сеть.
+      <div class="mt-layout" id="pulseLayout">
+        <section class="mt-box mt-list" aria-label="Счётчики воды">
+          <div class="mt-toolbar">
+            <span class="mt-hint">Счётчики импульсов «Пульсар» · строка — канал прибора</span>
+            <button type="button" class="ghost mt-tool-btn" onclick="openAddDrawer('pulse')">+ Подключить канал</button>
+          </div>
+          <div class="mt-scroll"><div class="mt-table" id="pulseMetersList"></div></div>
+        </section>
+        <aside class="mt-box mt-card" id="pulseCard" aria-label="Карточка канала"></aside>
       </div>
     </div>
 
-    <h2 class="sec-title">Почасовое потребление</h2>
-    <div id="backfillBox" style="display:none;color:var(--muted);font-size:12px;margin-bottom:8px;padding:10px 12px;background:var(--card2);border:var(--card-border)">
-      Загружаю историю из памяти счётчика: <span id="backfillProgress">—</span>
-    </div>
-    <div class="month-nav">
-      <button type="button" class="month-nav-arrow" id="monthPrevBtn" onclick="shiftMonth(-1)" aria-label="Предыдущий месяц">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-      </button>
-      <div class="month-picker" id="monthPicker">
-        <button type="button" class="month-picker-trigger" onclick="toggleMonthPicker()">
-          <span class="month-picker-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>
-          <span class="month-picker-label" id="monthPickerLabel">—</span>
-          <span class="month-picker-chev">▾</span>
-        </button>
-        <div class="month-picker-list" id="monthPickerList"></div>
+    <!-- ═══ Тепло ═══ -->
+    <div class="res-panel" id="resPanelHeat">
+      <div class="mt-empty">
+        <b>Приборов учёта тепла нет</b>
+        <span>Подключение теплосчётчиков к панели пока не поддерживается — раздел заработает вместе с первым таким прибором на объекте.</span>
       </div>
-      <button type="button" class="month-nav-arrow" id="monthNextBtn" onclick="shiftMonth(1)" aria-label="Следующий месяц">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-      </button>
     </div>
-    <div class="profile-wrap"><table class="profile" id="profileTable"></table></div>
-    <div class="profile-legend"><span>меньше</span><span class="grad"></span><span>больше</span>
-      <span class="key" title="Профиль счётчика за этот час не собран — значение восстановлено из разности накопленной энергии. Сумма верна, привязка к часу грубее."><i class="est">0,08</i> расчётное</span>
-      <span class="key" title="Интервал накоплен не полностью: у профиля это флаг самого счётчика, у расчётного значения — растянувшийся интервал опроса."><i class="inc">0,08</i> неполный срез</span>
-      <span style="margin-left:auto" id="profileMeta"></span></div>
   </div>
 
   <!-- ── Тарифы ── -->
@@ -1944,6 +2081,51 @@
 </main>
 </div>
 
+<!-- ── Панель «Добавить прибор» (редизайн, этап 3) — выезжает справа поверх раздела.
+     «Меркурий»: поиск на шине RS-485 (перенесён сюда из раздела «Модем») или добавление по
+     известному адресу. «Пульсар»: адрес на шине — серийный номер с этикетки, сканировать не нужно. -->
+<div class="drawer-scrim" id="addDrawerScrim" onclick="closeAddDrawer()" aria-hidden="true"></div>
+<div class="drawer" id="addDrawer" role="dialog" aria-modal="true" aria-labelledby="addDrawerTitle">
+  <div class="drawer-head">
+    <h2 id="addDrawerTitle">Добавить прибор</h2>
+    <button type="button" class="drawer-close" onclick="closeAddDrawer()" aria-label="Закрыть"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="seg" role="tablist" aria-label="Тип прибора">
+    <button type="button" role="tab" data-add="merc" onclick="setAddType('merc')">«Меркурий» · электро</button>
+    <button type="button" role="tab" data-add="pulse" onclick="setAddType('pulse')">«Пульсар» · вода</button>
+  </div>
+  <div class="drawer-body" id="addPaneMerc">
+    <div class="drawer-box">
+      <b>Найти на шине RS-485</b>
+      <span>Опросим адреса 1–239 и покажем ответившие приборы. Поиск занимает несколько минут, опрос приборов на это время встаёт в очередь за ним.</span>
+      <button type="button" id="scanBtn" onclick="startScan()">Начать поиск</button>
+      <div id="scanProgress" class="drawer-progress" style="display:none"></div>
+      <div id="scanCandidates"></div>
+    </div>
+    <div class="mc-sec">Или по известному адресу</div>
+    <div class="mc-form">
+      <label class="mc-field">Сетевой адрес<input id="addMeterAddr" type="number" min="0" max="239" placeholder="0–239"></label>
+      <label class="mc-field">Пароль<input id="addMeterPass" maxlength="6" placeholder="111111"></label>
+      <label class="mc-field mc-field-wide">Название<input id="addMeterLabel" placeholder="напр. Счётчик 5 этажа"></label>
+    </div>
+    <div class="mc-actions"><button type="button" onclick="addMeterManual()">Добавить счётчик</button></div>
+    <div id="addMeterErr" class="mc-err" style="display:none"></div>
+    <div class="mc-note">Расположение, модель, коэффициент ТТ и объект задаются потом в паспорте прибора.</div>
+  </div>
+  <div class="drawer-body" id="addPanePulse">
+    <div class="mc-note" style="margin-top:0">Адрес прибора на шине — его серийный номер с этикетки. Один «Пульсар» несёт несколько независимых каналов: каждый задействованный канал добавляется отдельно.</div>
+    <div class="mc-form">
+      <label class="mc-field">Серийный № «Пульсара»<input id="pulseAddSerial" placeholder="напр. 5015735"></label>
+      <label class="mc-field">Канал (1–16)<input id="pulseAddChannel" type="number" min="1" max="16" value="1"></label>
+      <label class="mc-field">Название<input id="pulseAddLabel" placeholder="напр. Вода ХВС, ИТП"></label>
+      <label class="mc-field">Вес импульса, м³<input id="pulseAddWeight" type="number" step="any" min="0" placeholder="напр. 0.01"></label>
+      <label class="mc-field mc-field-wide">Расположение<input id="pulseAddLocation" placeholder="напр. ИТП, ввод ХВС"></label>
+    </div>
+    <div class="mc-actions"><button type="button" onclick="submitPulseAdd()">Добавить канал</button></div>
+    <div id="pulseAddErr" class="mc-err" style="display:none"></div>
+  </div>
+</div>
+
 <script>
 const $=id=>document.getElementById(id);
 const MODEM_PWD='5492';
@@ -1976,39 +2158,26 @@ function meterLabel(m){
   return (m.location?m.location+' · ':'')+(m.model||'Меркурий')+(m.serial_number?(' · №'+m.serial_number):'')+(m.label?(' · '+m.label):(' · адрес '+m.addr))
     +(m.decommissioned_at?' · выведен из эксплуатации':'');
 }
-// Пикер счётчика показан в трёх местах (Приборы учёта / АСКУЭ / Регистратор) — один и тот же
-// список и currentMeterId, просто независимые DOM-узлы-дублёры, чтобы в каждом разделе было
-// однозначно видно, для какого именно ПУ показаны данные (было неочевидно раньше — в АСКУЭ
-// список счётчиков просто мешался в общий ряд и не читался как переключатель).
+// Пикер счётчика остался в двух разделах — «Регистратор» и «Уведомления → Лимиты» (там нужно
+// однозначно видеть, для какого ПУ график). В «Приборах учёта» его заменил список приборов
+// (редизайн, этап 3), раздел «АСКУЭ» переехал в карточку прибора. currentMeterId общий на всех.
 const METER_PICKER_INSTANCES={
-  main:{wrap:'meterPickerWrap', label:'meterPickerLabel', list:'meterPickerList'},
-  askue:{wrap:'askueMeterPickerWrap', label:'askueMeterPickerLabel', list:'askueMeterPickerList'},
   reg:{wrap:'regMeterPickerWrap', label:'regMeterPickerLabel', list:'regMeterPickerList'},
   lim:{wrap:'limMeterPickerWrap', label:'limMeterPickerLabel', list:'limMeterPickerList'},
 };
 function renderMeterPicker(meters){
-  const noneNote=$('meterNoneNote');
-  if(!meters.length){
-    noneNote.style.display='block';
-    for(const k in METER_PICKER_INSTANCES) $(METER_PICKER_INSTANCES[k].wrap).style.display='none';
-    $('meterInfoWrap').style.display='none';
-  } else {
-    noneNote.style.display='none';
-    const current=meters.find(m=>m.id===currentMeterId)||meters[0];
-    const itemsHtml=meters.map(m=>
-      `<div class="mpicker-item${m.id===currentMeterId?' active':''}" onclick="selectMeter(${m.id});closeMeterPicker()" tabindex="0" role="button">${esc(meterLabel(m))}</div>`
-    ).join('');
-    for(const k in METER_PICKER_INSTANCES){
-      const inst=METER_PICKER_INSTANCES[k];
-      $(inst.wrap).style.display='block';
-      $(inst.label).textContent=meterLabel(current);
-      $(inst.list).innerHTML=itemsHtml;
-    }
-    $('meterInfoWrap').style.display='block';
-    renderMinfo(current);
+  const current=meters.find(m=>m.id===currentMeterId)||meters[0];
+  const itemsHtml=meters.map(m=>
+    `<div class="mpicker-item${m.id===currentMeterId?' active':''}" onclick="selectMeter(${m.id});closeMeterPicker()" tabindex="0" role="button">${esc(meterLabel(m))}</div>`
+  ).join('');
+  for(const k in METER_PICKER_INSTANCES){
+    const inst=METER_PICKER_INSTANCES[k];
+    $(inst.wrap).style.display=meters.length?'block':'none';
+    if(current){ $(inst.label).textContent=meterLabel(current); $(inst.list).innerHTML=itemsHtml; }
   }
+  renderMeterSection();
 }
-function toggleMeterPicker(which){ $(METER_PICKER_INSTANCES[which||'main'].wrap).classList.toggle('open'); }
+function toggleMeterPicker(which){ $(METER_PICKER_INSTANCES[which||'reg'].wrap).classList.toggle('open'); }
 function closeMeterPicker(){ for(const k in METER_PICKER_INSTANCES) $(METER_PICKER_INSTANCES[k].wrap).classList.remove('open'); }
 document.addEventListener('click',e=>{
   for(const k in METER_PICKER_INSTANCES){
@@ -2045,14 +2214,8 @@ function selectModem(id){
   checkContext();
 }
 
-// ── Расположение / модель / коэфф. трансформации счётчика — редактируются по клику, сохраняются
-// через /api/mercury/config. ct_ratio — множитель для ТТ (трансформаторов тока): секретная
-// вторичная сторона даёт маленькие ток/мощность, коэффициент домножает их до реальных значений
-// ТОЛЬКО на отображении в «Показаниях» (см. renderMercury) — сырые протокольные данные не трогаем.
-const MINFO_EMPTY_TEXT={ location:'не указано', model:'не указана', ct_ratio:'не задан (1×)', verification_due:'не указан' };
-// Срок поверки хранится и редактируется как ISO 'YYYY-MM-DD' (<input type="date"> понимает только
-// его), а показывается в привычном ДД.ММ.ГГГГ. Без Date — чтобы не ловить сдвиг на сутки от
-// часового пояса на календарной дате.
+// Срок поверки хранится как ISO 'YYYY-MM-DD' (<input type="date"> понимает только его), а
+// показывается в привычном ДД.ММ.ГГГГ. Без Date — чтобы не ловить сдвиг на сутки от часового пояса.
 function fmtMinfoDate(iso){
   const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||''); return m?`${m[3]}.${m[2]}.${m[1]}`:iso;
 }
@@ -2061,161 +2224,248 @@ const CATEGORY_OPTIONS=[
   { val:'', label:'— не указана —' }, { val:'rent', label:'Аренда' },
   { val:'technical', label:'Технические учёты' }, { val:'commercial', label:'Коммерческие учёты' },
 ];
-function renderMinfo(m){
-  for(const key of ['location','model','ct_ratio','verification_due']){
-    const val=$('m'+cap(key)+'Val'), input=$('m'+cap(key)+'Input');
-    const editBtn=$('m'+cap(key)+'EditBtn'), saveBtn=$('m'+cap(key)+'SaveBtn');
-    const raw=m[key];
-    val.textContent = raw ? (key==='ct_ratio'?'×'+raw:key==='verification_due'?fmtMinfoDate(raw):raw) : MINFO_EMPTY_TEXT[key];
-    val.className = 'minfo-val'+(raw?'':' empty');
-    // На случай, если до смены счётчика где-то осталось незакрытое редактирование — сбрасываем
-    // вид полей к «просмотру» при каждой перерисовке (напр. после переключения ПУ).
-    val.style.display='block'; input.style.display='none';
-    editBtn.style.display='flex'; saveBtn.style.display='none';
-  }
-  renderCategoryMinfo(m);
-  renderSiteMinfo(m);
-}
-function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
-function editMinfo(key){
-  if(key==='category'){ editCategoryMinfo(); return; }
-  const val=$('m'+cap(key)+'Val'), input=$('m'+cap(key)+'Input');
-  const editBtn=$('m'+cap(key)+'EditBtn'), saveBtn=$('m'+cap(key)+'SaveBtn');
-  const meter=allMeters.find(m=>m.id===currentMeterId); if(!meter) return;
-  val.style.display='none'; input.style.display='block';
-  editBtn.style.display='none'; saveBtn.style.display='flex';
-  input.value=meter[key]||''; input.focus(); input.select();
-  input.onkeydown=ev=>{
-    if(ev.key==='Enter') saveMinfo(key);
-    else if(ev.key==='Escape') cancelEditMinfo(key);
-  };
-}
-function cancelEditMinfo(key){
-  if(key==='category'){ cancelCategoryMinfo(); return; }
-  const val=$('m'+cap(key)+'Val'), input=$('m'+cap(key)+'Input');
-  const editBtn=$('m'+cap(key)+'EditBtn'), saveBtn=$('m'+cap(key)+'SaveBtn');
-  input.style.display='none'; val.style.display='block';
-  editBtn.style.display='flex'; saveBtn.style.display='none';
-}
-async function saveMinfo(key){
-  const val=$('m'+cap(key)+'Val'), input=$('m'+cap(key)+'Input');
-  const editBtn=$('m'+cap(key)+'EditBtn'), saveBtn=$('m'+cap(key)+'SaveBtn');
-  const meter=allMeters.find(m=>m.id===currentMeterId);
-  const newVal=input.value.trim();
-  input.style.display='none'; val.style.display='block';
-  editBtn.style.display='flex'; saveBtn.style.display='none';
-  if(!meter || newVal===String(meter[key]||'')) return;
-  if(key==='ct_ratio' && newVal && !(parseFloat(newVal)>0)){ showErr('Коэффициент трансформации должен быть положительным числом'); return; }
-  // Браузер без поддержки <input type="date"> отдаёт обычный текст: сервер такой мусор молча
-  // отбросит, а строка показала бы значение, которого в базе нет. Ловим на месте.
-  if(key==='verification_due' && newVal && !/^\d{4}-\d{2}-\d{2}$/.test(newVal)){
-    showErr('Срок поверки нужно указать датой в формате ГГГГ-ММ-ДД'); renderMinfo(meter); return;
-  }
+
+// ── «Приборы учёта» (редизайн, этап 3): вкладки ресурсов, список, карточка ──────────────────
+// Сводка по приборам (связь, тревоги, показание и расход с начала месяца) приходит одним
+// запросом /api/meters/overview; паспортные поля — из allMeters (/api/context).
+let meterOverview={}, meterOverviewToday=null, meterFilter='all', meterRes='power', pfMeterId=null;
+try{ const r=localStorage.getItem('meterRes'); if(['power','water','heat'].includes(r)) meterRes=r; }catch(e){}
+async function loadMetersOverview(){
   try{
-    await api(mUrl('/api/mercury/config'),'POST',{[key]:newVal});
-    meter[key]=key==='ct_ratio' ? (newVal?parseFloat(newVal):null) : (newVal||null);
-    renderMinfo(meter);
-    renderMeterPicker(allMeters); // обновить подпись в списке, если поменялась модель/адрес отображения
-    if(key==='ct_ratio') mercuryRefresh(true); // перерисовать показания с новым множителем сразу
-  }catch(e){ showErr(e.message); renderMinfo(meter); }
+    const d=await api(dUrl('/api/meters/overview'));
+    const map={}; for(const o of (d.meters||[])) map[o.id]=o;
+    meterOverview=map; meterOverviewToday=d.today||null;
+  }catch(e){}
+  renderMeterSection();
+}
+function switchMeterRes(res){
+  meterRes=res;
+  try{ localStorage.setItem('meterRes', res); }catch(e){}
+  document.querySelectorAll('#tab-meter .res-tab').forEach(b=>{
+    const on=b.dataset.res===res; b.classList.toggle('active', on); b.setAttribute('aria-selected', on?'true':'false');
+  });
+  $('resPanelPower').classList.toggle('active', res==='power');
+  $('resPanelWater').classList.toggle('active', res==='water');
+  $('resPanelHeat').classList.toggle('active', res==='heat');
+}
+function meterTitle(m){ return m.location || m.label || ('Счётчик '+m.addr); }
+// Состояние связи прибора для точки/бейджа: выведен → без опроса; нет сводки или опроса ещё не
+// было (сразу после рестарта сервиса) → «ожидает опроса», а не «нет связи»: иначе каждый деплой
+// на минуту красил бы весь список красным.
+function meterLink(m){
+  if(m.decommissioned_at) return { key:'decom', dot:'', text:'выведен из эксплуатации' };
+  const o=meterOverview[m.id];
+  if(!o || !o.polledAt) return { key:'wait', dot:'', text:'ожидает опроса' };
+  return o.online ? { key:'on', dot:'online', text:'на связи' } : { key:'off', dot:'err', text:'нет связи' };
+}
+function meterNeedsAttention(m){
+  if(m.decommissioned_at) return false;
+  const due=objDueLevel(m.verification_due), o=meterOverview[m.id];
+  return (due && due.key==='over') || meterLink(m).key==='off' || !!(o && o.alarm);
+}
+function fmtFixed(v,d){ return v==null?'—':v.toLocaleString('ru-RU',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function renderMeterSection(){
+  $('resCountPower').textContent=allMeters.length;
+  $('resCountWater').textContent=pulseMeters.length;
+  const none=!allMeters.length;
+  $('meterNoneNote').style.display=none?'flex':'none';
+  $('mtLayout').style.display=none?'none':'flex';
+  $('mtSummary').style.display=none?'none':'flex';
+  if(none) return;
+  renderMeterSummary(); renderMeterTable(); renderMeterCard();
+}
+function renderMeterSummary(){
+  const monthTxt=meterOverviewToday?MONTH_NAMES[parseInt(meterOverviewToday.slice(5,7),10)-1].toLowerCase():'месяц';
+  const cells=[];
+  for(const [cat,label] of [['technical',CATEGORY_LABELS.technical],['commercial',CATEGORY_LABELS.commercial],['rent',CATEGORY_LABELS.rent],['','Без категории']]){
+    const ms=allMeters.filter(m=>(m.category||'')===cat);
+    if(!ms.length) continue;
+    let sum=0, has=false;
+    for(const m of ms){ const o=meterOverview[m.id]; if(o && o.consumptionKwh!=null){ sum+=o.consumptionKwh; has=true; } }
+    cells.push(`<div class="mt-sum"><span class="mt-sum-cap">${esc(label)} · ${monthTxt}</span>`+
+      `<b>${has?fmtFixed(sum,0):'—'} <small>кВт·ч</small></b><span class="mt-sum-sub">${ruMeters(ms.length)}</span></div>`);
+  }
+  const active=allMeters.filter(m=>!m.decommissioned_at);
+  const on=active.filter(m=>meterLink(m).key==='on').length;
+  const off=active.filter(m=>meterLink(m).key==='off').length;
+  cells.push(`<div class="mt-sum${off?' warn':''}"><span class="mt-sum-cap">На связи</span>`+
+    `<b>${on} из ${active.length}</b><span class="mt-sum-sub">${off?ruMeters(off)+' без связи':'опрос раз в пару минут'}</span></div>`);
+  let over=0, soon=0, firstSoon=null;
+  for(const m of active){
+    const d=objDueLevel(m.verification_due);
+    if(d && d.key==='over') over++;
+    else if(d && (d.key==='w'||d.key==='m')){ soon++; if(!firstSoon || m.verification_due<firstSoon.verification_due) firstSoon=m; }
+  }
+  const dueSub = over ? (soon?`и ${soon} скоро`:'нажмите, чтобы показать') : soon ? `ближайшая — ${fmtMinfoDate(firstSoon.verification_due)}` : 'в ближайший месяц сроков нет';
+  cells.push(`<button type="button" class="mt-sum${over?' danger':soon?' warn':''}" onclick="setMeterFilter('attn')">`+
+    `<span class="mt-sum-cap">Поверка</span><b>${over?over+' '+(over===1?'просрочена':'просрочены'):soon?soon+' скоро':'в порядке'}</b>`+
+    `<span class="mt-sum-sub">${dueSub}</span></button>`);
+  $('mtSummary').innerHTML=cells.join('');
+}
+function setMeterFilter(f){ meterFilter=f; renderMeterTable(); }
+const METER_FILTERS=[
+  ['all','Все', ()=>true],
+  ['attn','Требуют внимания', m=>meterNeedsAttention(m)],
+  ['off','Без связи', m=>meterLink(m).key==='off'],
+  ['decom','Выведены', m=>!!m.decommissioned_at],
+];
+function renderMeterTable(){
+  $('mtFilters').innerHTML=METER_FILTERS.map(([key,label,fn])=>{
+    const n=allMeters.filter(fn).length;
+    return `<button type="button" class="chip${meterFilter===key?' active':''}" onclick="setMeterFilter('${key}')" aria-pressed="${meterFilter===key}">${label}<b>${n}</b></button>`;
+  }).join('');
+  const q=($('mtSearch').value||'').trim().toLowerCase();
+  const filterFn=(METER_FILTERS.find(f=>f[0]===meterFilter)||METER_FILTERS[0])[2];
+  const list=allMeters.filter(filterFn).filter(m=>{
+    if(!q) return true;
+    const o=meterOverview[m.id]||{};
+    return [m.location,m.label,m.model,m.serial_number,String(m.addr),o.tenantName,o.rentalName]
+      .some(s=>s && String(s).toLowerCase().includes(q));
+  });
+  const head=`<div class="mt-row mt-head"><span></span><span>Помещение</span><span>Модель · №</span><span>Адрес</span>`+
+    `<span class="num">Показание</span><span class="num">Расход ${meterOverviewToday?MONTH_NAMES_SHORT[parseInt(meterOverviewToday.slice(5,7),10)-1]+'.':'мес.'}</span><span>Поверка</span></div>`;
+  if(!list.length){
+    $('mtTable').innerHTML=head+`<div class="mt-nothing">${q?'Ничего не найдено':'В этом фильтре приборов нет'}</div>`;
+    return;
+  }
+  const groups=[['technical',CATEGORY_LABELS.technical],['commercial',CATEGORY_LABELS.commercial],['rent',CATEGORY_LABELS.rent],['','Без категории']];
+  let html=head;
+  for(const [cat,label] of groups){
+    const ms=list.filter(m=>(m.category||'')===cat);
+    if(!ms.length) continue;
+    html+=`<div class="mt-group">${esc(label)}</div>`;
+    html+=ms.map(meterRowHtml).join('');
+  }
+  $('mtTable').innerHTML=html;
+}
+function meterRowHtml(m){
+  const o=meterOverview[m.id]||{}, link=meterLink(m), sel=m.id===currentMeterId;
+  const sub=[o.tenantName,o.rentalName].filter(Boolean).join(' · ') || (m.location&&m.label?m.label:'');
+  const due=objDueLevel(m.verification_due);
+  const dueTxt=!m.verification_due?'<span class="mt-due none">не указана</span>'
+    : due&&due.key==='over' ? '<span class="mt-due over">просрочена</span>'
+    : `<span class="mt-due${due&&(due.key==='w'||due.key==='m')?' soon':''}">до ${fmtMinfoDate(m.verification_due)}</span>`;
+  return `<button type="button" class="mt-row${sel?' active':''}${m.decommissioned_at?' decom':''}" onclick="pickMeterRow(${m.id})" aria-pressed="${sel}">`+
+    `<span class="dot ${link.dot}" title="${link.text}" aria-label="${link.text}"></span>`+
+    `<span class="mt-main"><b>${esc(meterTitle(m))}</b>${sub?`<small>${esc(sub)}</small>`:''}${o.alarm?'<small class="mt-alarm">⚠ тревога счётчика</small>':''}</span>`+
+    `<span class="mt-model">${esc((m.model||'Меркурий').replace('Меркурий','Мерк.'))}<small>${esc(m.serial_number||'—')}</small></span>`+
+    `<span class="mt-addr">${m.addr}</span>`+
+    `<span class="num">${fmtFixed(o.endReading,3)}</span>`+
+    `<span class="num strong">${fmtFixed(o.consumptionKwh,1)}</span>`+
+    dueTxt+`</button>`;
+}
+// На узком экране карточка стоит под списком — после выбора прибора прокручиваем к ней, иначе
+// клик по строке выглядел бы так, будто ничего не произошло.
+function pickMeterRow(id){
+  selectMeter(id);
+  if(window.matchMedia('(max-width:1100px)').matches) $('meterInfoWrap').scrollIntoView({behavior:'smooth', block:'start'});
+}
+function renderMeterCard(){
+  const m=allMeters.find(x=>x.id===currentMeterId); if(!m) return;
+  const o=meterOverview[m.id]||{}, link=meterLink(m);
+  $('mcTitle').textContent=meterTitle(m);
+  $('mcSub').textContent=[m.model||'Меркурий', m.serial_number?'№'+m.serial_number:null, 'адрес '+m.addr, 'ТТ ×'+(m.ct_ratio||1)].filter(Boolean).join(' · ');
+  const badge=$('mcBadge'); badge.textContent=link.text; badge.className='mc-badge '+link.key;
+  const due=objDueLevel(m.verification_due), warn=$('mcVerifyWarn');
+  if(!m.decommissioned_at && due && due.key==='over'){
+    warn.innerHTML=`<span>Поверка просрочена: срок был до ${fmtMinfoDate(m.verification_due)} (${esc(due.hint.replace('поверка просрочена на ','')+' назад')}).</span>`+
+      `<button type="button" class="link-btn" onclick="switchMeterTab('passport');$('pfVerify').focus()">Указать новую дату</button>`;
+    warn.style.display='flex';
+  } else warn.style.display='none';
+  const ct=m.ct_ratio||1;
+  $('mcStartCap').textContent=meterOverviewToday?('На 01.'+meterOverviewToday.slice(5,7)):'На начало месяца';
+  $('mcStart').textContent=fmtFixed(o.startReading,3);
+  $('mcEnd').textContent=fmtFixed(o.endReading,3);
+  $('mcConsCap').textContent='Расход за месяц'+(ct!==1?' ×'+ct:'');
+  $('mcCons').textContent=o.consumptionKwh==null?'—':fmtFixed(o.consumptionKwh,1)+' кВт·ч';
+  if(pfMeterId!==m.id) fillPassport(m);
+}
+// Паспорт заполняется только при смене прибора (и после сохранения), а не на каждой перерисовке
+// по автообновлению — иначе набранный, но ещё не сохранённый текст стирался бы раз в 30 секунд.
+function fillPassport(m){
+  pfMeterId=m.id;
+  const o=meterOverview[m.id]||{};
+  $('pfLocation').value=m.location||''; $('pfModel').value=m.model||'';
+  $('pfCt').value=m.ct_ratio==null?'':m.ct_ratio; $('pfVerify').value=m.verification_due||'';
+  $('pfSite').innerHTML=['<option value="">— не указан —</option>'].concat(objSites.map(s=>
+    `<option value="${s.id}"${s.id===m.site_id?' selected':''}>${esc(s.name)}</option>`)).join('');
+  $('pfCategory').innerHTML=CATEGORY_OPTIONS.map(c=>`<option value="${c.val}"${c.val===(m.category||'')?' selected':''}>${c.label}</option>`).join('');
+  $('pfTenant').value=o.tenantName||''; $('pfRental').value=o.rentalName||'';
+  $('pfMsg').textContent='';
+}
+async function savePassport(){
+  const m=allMeters.find(x=>x.id===currentMeterId); if(!m) return;
+  const msg=$('pfMsg'); msg.className='mc-saved'; msg.textContent='';
+  const ctTxt=$('pfCt').value.trim(), verify=$('pfVerify').value.trim();
+  if(ctTxt && !(parseFloat(ctTxt)>0)){ msg.className='mc-saved err'; msg.textContent='Коэффициент ТТ должен быть положительным числом'; return; }
+  if(verify && !/^\d{4}-\d{2}-\d{2}$/.test(verify)){ msg.className='mc-saved err'; msg.textContent='Дата поверки — в формате ГГГГ-ММ-ДД'; return; }
+  const cfg={};
+  const txt={ location:$('pfLocation').value.trim(), model:$('pfModel').value.trim(), ct_ratio:ctTxt, verification_due:verify };
+  for(const k in txt) if(txt[k]!==String(m[k]==null?'':m[k])) cfg[k]=txt[k];
+  const siteVal=$('pfSite').value, siteId=siteVal?parseInt(siteVal,10):null;
+  if(siteId!==(m.site_id||null)) cfg.site_id=siteId;
+  const cat=$('pfCategory').value; if(cat!==(m.category||'')) cfg.category=cat;
+  const o=meterOverview[m.id]||{};
+  const tenant=$('pfTenant').value.trim(), rental=$('pfRental').value.trim();
+  const tenantChanged=tenant!==(o.tenantName||'') || rental!==(o.rentalName||'');
+  if(!Object.keys(cfg).length && !tenantChanged){ msg.textContent='Изменений нет'; return; }
+  msg.textContent='Сохраняю…';
+  try{
+    if(Object.keys(cfg).length){
+      const d=await api(mUrl('/api/mercury/config'),'POST',cfg);
+      const c=d.cfg||{};
+      for(const k of ['location','model','ct_ratio','verification_due','site_id','category']) if(k in c) m[k]=c[k];
+    }
+    if(tenantChanged){
+      await api(dUrl('/api/objects/meter/'+m.id),'POST',{tenant_name:tenant, rental_name:rental});
+      o.tenantName=tenant||null; o.rentalName=rental||null; meterOverview[m.id]=o;
+    }
+    pfMeterId=null;
+    renderMeterPicker(allMeters);
+    $('pfMsg').textContent='Сохранено';
+    setTimeout(()=>{ if($('pfMsg').textContent==='Сохранено') $('pfMsg').textContent=''; },2200);
+    if('ct_ratio' in cfg){ mercuryRefresh(true); loadMetersOverview(); }
+    if(('category' in cfg || 'site_id' in cfg || tenantChanged) && objMonth) loadObjTable(objMonth);
+  }catch(e){ msg.className='mc-saved err'; msg.textContent=e.message; }
 }
 
-// ── Категория — кастомный дропдаун (см. .mcat-picker в CSS), не <select>: выбор пункта сразу
-// сохраняет и закрывает список, отдельной кнопки "сохранить" не требует (как и .month-picker).
-function renderCategoryMinfo(m){
-  const raw=m.category;
-  const val=$('mCategoryVal');
-  val.textContent = raw ? (CATEGORY_LABELS[raw]||raw) : 'не указана';
-  val.className = 'minfo-val'+(raw?'':' empty');
-  val.style.display='block';
-  $('mCategoryPickerWrap').style.display='none';
-  $('mCategoryPickerWrap').classList.remove('open');
-  $('mCategoryEditBtn').style.display='flex';
+// ── Панель «Добавить прибор» ──
+let addType='merc';
+function openAddDrawer(type){
+  setAddType(type || (meterRes==='water'?'pulse':'merc'));
+  $('addMeterErr').style.display='none'; $('pulseAddErr').style.display='none';
+  document.body.classList.add('drawer-open');
 }
-function editCategoryMinfo(){
-  const meter=allMeters.find(m=>m.id===currentMeterId); if(!meter) return;
-  $('mCategoryVal').style.display='none';
-  $('mCategoryPickerWrap').style.display='flex';
-  $('mCategoryEditBtn').style.display='none';
-  renderCategoryList(meter.category||'');
-  $('mCategoryPickerWrap').classList.add('open');
+function closeAddDrawer(){ document.body.classList.remove('drawer-open'); }
+function setAddType(t){
+  addType=t;
+  document.querySelectorAll('#addDrawer .seg button').forEach(b=>{
+    const on=b.dataset.add===t; b.classList.toggle('active', on); b.setAttribute('aria-selected', on?'true':'false');
+  });
+  $('addPaneMerc').style.display=t==='merc'?'flex':'none';
+  $('addPanePulse').style.display=t==='pulse'?'flex':'none';
 }
-function cancelCategoryMinfo(){
-  const meter=allMeters.find(m=>m.id===currentMeterId);
-  if(meter) renderCategoryMinfo(meter);
-}
-function renderCategoryList(current){
-  const opt=CATEGORY_OPTIONS.find(o=>o.val===current);
-  $('mCategoryTriggerLabel').textContent = opt?opt.label:'— не указана —';
-  $('mCategoryList').innerHTML=CATEGORY_OPTIONS.map(o=>
-    `<div class="mcat-item${o.val===current?' active':''}" onclick="selectCategory('${o.val}')" tabindex="0" role="button">${o.label}</div>`
-  ).join('');
-}
-function toggleCategoryList(){ $('mCategoryPickerWrap').classList.toggle('open'); }
-document.addEventListener('click', e=>{
-  const wrap=$('mCategoryPickerWrap');
-  if(wrap && wrap.classList.contains('open') && !wrap.contains(e.target)) wrap.classList.remove('open');
-});
-async function selectCategory(newCategory){
-  $('mCategoryPickerWrap').classList.remove('open');
-  const meter=allMeters.find(m=>m.id===currentMeterId); if(!meter) return;
-  if(newCategory===(meter.category||'')){ renderCategoryMinfo(meter); return; }
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeAddDrawer(); });
+async function addMeterManual(){
+  const err=$('addMeterErr'); err.style.display='none';
+  const addr=parseInt($('addMeterAddr').value,10);
+  if(!Number.isInteger(addr) || addr<0 || addr>239){ err.textContent='Сетевой адрес — число от 0 до 239'; err.style.display='block'; return; }
+  const body={ addr, label:$('addMeterLabel').value.trim() };
+  const pass=$('addMeterPass').value.trim(); if(pass) body.password=pass;
   try{
-    await api(mUrl('/api/mercury/config'),'POST',{category:newCategory});
-    meter.category = newCategory || null;
-    renderCategoryMinfo(meter);
-    if(objMonth) loadObjTable(objMonth); // счётчик мог сменить вкладку в «Объектах»
-  }catch(e){ showErr(e.message); renderCategoryMinfo(meter); }
-}
-
-// ── Объект (площадка/здание) — тот же кастомный дропдаун, что и у Категории, только список
-// пунктов приходит с сервера (см. objSites/loadObjSites) вместо константы: объекты создаёт
-// администратор, а не Мастер, поэтому их набор у каждого проекта свой.
-function renderSiteMinfo(m){
-  const site=objSites.find(s=>s.id===m.site_id);
-  const val=$('mSiteVal');
-  val.textContent = site ? site.name : 'не указан';
-  val.className = 'minfo-val'+(site?'':' empty');
-  val.style.display='block';
-  $('mSitePickerWrap').style.display='none';
-  $('mSitePickerWrap').classList.remove('open');
-  $('mSiteEditBtn').style.display='flex';
-}
-function editSiteMinfo(){
-  const meter=allMeters.find(m=>m.id===currentMeterId); if(!meter) return;
-  if(!objSites.length){ showErr('В проекте пока нет ни одного объекта — попросите администратора создать хотя бы один'); return; }
-  $('mSiteVal').style.display='none';
-  $('mSitePickerWrap').style.display='flex';
-  $('mSiteEditBtn').style.display='none';
-  renderSiteList(meter.site_id);
-  $('mSitePickerWrap').classList.add('open');
-}
-function renderSiteList(currentId){
-  const opt=objSites.find(s=>s.id===currentId);
-  $('mSiteTriggerLabel').textContent = opt?opt.name:'— не указан —';
-  $('mSiteList').innerHTML = [{id:null,name:'— не указан —'}].concat(objSites).map(s=>
-    `<div class="mcat-item${s.id===currentId?' active':''}" onclick="selectSite(${s.id})" tabindex="0" role="button">${esc(s.name)}</div>`
-  ).join('');
-}
-function toggleSiteList(){ $('mSitePickerWrap').classList.toggle('open'); }
-document.addEventListener('click', e=>{
-  const wrap=$('mSitePickerWrap');
-  if(wrap && wrap.classList.contains('open') && !wrap.contains(e.target)) wrap.classList.remove('open');
-});
-async function selectSite(newSiteId){
-  $('mSitePickerWrap').classList.remove('open');
-  const meter=allMeters.find(m=>m.id===currentMeterId); if(!meter) return;
-  if(newSiteId===(meter.site_id||null)){ renderSiteMinfo(meter); return; }
-  try{
-    await api(mUrl('/api/mercury/config'),'POST',{site_id:newSiteId});
-    meter.site_id = newSiteId;
-    renderSiteMinfo(meter);
-  }catch(e){ showErr(e.message); renderSiteMinfo(meter); }
+    const d=await api(dUrl('/api/meters'),'POST',body);
+    $('addMeterAddr').value=''; $('addMeterPass').value=''; $('addMeterLabel').value='';
+    closeAddDrawer();
+    if(d.meter && d.meter.id) currentMeterId=d.meter.id;
+    switchMeterRes('power');
+    refreshMetersList();
+  }catch(e){ err.textContent=e.message; err.style.display='block'; }
 }
 
 function selectMeter(id){
   if(id===currentMeterId) return;
   currentMeterId=id;
+  $('eventHistoryList').textContent='Около 40 запросов к счётчику по общей шине, обычно 10–20 секунд.';
   renderMeterPicker(allMeters);
   currentMonth=null;
   regZoomFrom=null; regZoomTo=null; regViewT0=null; regViewT1=null; reg24hEnd=Date.now();
@@ -2457,7 +2707,8 @@ function copySms(){
 
 function toggleAuto(){
   // читаем кэш часто (лёгкий запрос), фон на сервере опрашивает модем раз в 30с
-  if($('autoChk').checked){ autoTimer=setInterval(()=>{refresh(true); mercuryRefresh(true); refreshMetersStatus(); loadPulseMeters();},10000); }
+  if($('autoChk').checked){ let tick=0; autoTimer=setInterval(()=>{refresh(true); mercuryRefresh(true); refreshMetersStatus(); loadPulseMeters();
+    if(++tick%3===0 && $('tab-meter').classList.contains('active')) loadMetersOverview();},10000); }
   else { clearInterval(autoTimer); autoTimer=null; }
 }
 
@@ -2505,6 +2756,8 @@ function renderMercury(d){
     errLine.style.display='none';
     return;
   }
+  const pol=$('mcPolled');
+  if(pol) pol.textContent = d.ageSec==null ? '' : 'опрос '+(d.ageSec<60?d.ageSec+' с':Math.round(d.ageSec/60)+' мин')+' назад';
   if(!d.online && d.error){
     errLine.style.display='block';
     errLine.textContent='Счётчик не отвечает: '+d.error;
@@ -2515,7 +2768,7 @@ function renderMercury(d){
   // Коэфф. трансформации (ТТ) — только для тока и мощности (P/Q/S — те же ампер-вольты), не для
   // напряжения (трансформатор ТОКА, не напряжения) и не для энергии (счётчик уже сам считает её
   // с поправкой на реальную нагрузку). Множитель применяется только тут, при отображении —
-  // см. renderMinfo/saveMinfo выше и ROADMAP-заметку про Capitalservis (счётчики через ТТ).
+  // см. паспорт прибора (savePassport) и ROADMAP-заметку про Capitalservis (счётчики через ТТ).
   const curMeter=allMeters.find(m=>m.id===currentMeterId);
   const ctRatio=(curMeter && curMeter.ct_ratio) || 1;
   const mul=v=>v==null?null:v*ctRatio;
@@ -2799,7 +3052,7 @@ async function mercuryForceRefresh(){
 let mDecommissionedAt=null;
 async function loadMercuryCfg(){
   try{ const c=await api(mUrl('/api/mercury/config')); $('mCfgAddr').value=c.addr; $('mCfgPass').value=c.password;
-    $('mCfgInterval').value=c.pollIntervalSec;
+    $('mCfgInterval').textContent=c.pollIntervalSec+' с — общий для всей шины';
     mDecommissionedAt=c.decommissioned_at||null; renderDecommission(); }catch(e){}
 }
 function renderDecommission(){
@@ -2838,6 +3091,7 @@ async function toggleDecommission(){
   };
   patchDecom(objRows); patchDecom(repRows);
   renderObjTable(); renderRepTable();
+  loadMetersOverview();
   $('msg').textContent = mDecommissionedAt ? 'Прибор выведен из эксплуатации' : 'Прибор возвращён в работу';
   setTimeout(()=>{if(!busy)$('msg').textContent='';},2200);
   loadAlerts();
@@ -2845,8 +3099,7 @@ async function toggleDecommission(){
 async function saveMercuryCfg(){
   setBusy(true,'Сохраняю…');
   try{ await api(mUrl('/api/mercury/config'),'POST',{
-      addr: parseInt($('mCfgAddr').value), password: $('mCfgPass').value.trim(),
-      pollIntervalSec: parseInt($('mCfgInterval').value) });
+      addr: parseInt($('mCfgAddr').value), password: $('mCfgPass').value.trim() });
     setBusy(false); $('msg').textContent='Настройка сохранена'; mercuryRefresh(true);
     refreshMetersList();
     setTimeout(()=>{if(!busy)$('msg').textContent='';},1800);
@@ -3144,8 +3397,7 @@ async function loadObjSites(){
   updateObjSiteGating();
   // «Приборы учёта» могли уже отрисовать дропдаун «Объект» с пустым/неполным objSites (гонка —
   // loadInfo() и loadObjSites() запускаются параллельно из checkContext) — досчитываем сейчас.
-  const meter=allMeters.find(m=>m.id===currentMeterId);
-  if(meter && $('mSiteVal')) renderSiteMinfo(meter);
+  if(pfMeterId!=null){ pfMeterId=null; renderMeterCard(); }
   if(objSelectedSiteId!=null) loadObjMonths();
   // Раздел «Автоматизированные отчёты» берёт этот же список объектов — отдельного запроса у него
   // нет, поэтому он инициализируется здесь, когда objSites уже заполнен (см. initRepFromSites).
@@ -4685,10 +4937,14 @@ async function saveNotifyEmail(){
 loadNotifyEmail();
 
 function switchTab(name){
+  // Раздел «АСКУЭ» переехал в карточку прибора (редизайн, этап 3) — старые ссылки и сохранённый
+  // в браузере раздел ведут на «Профиль» прибора.
+  if(name==='askue'){ name='meter'; if(typeof switchMeterTab==='function') switchMeterTab('profile'); }
   document.querySelectorAll('.side-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
   document.querySelectorAll('.content > .tab-panel').forEach(p=>p.classList.toggle('active', p.id==='tab-'+name));
   if(document.getElementById('mainContent').style.display!=='none') $('pageTitle').textContent=TAB_TITLES[name]||name;
   $('modemQuickActions').style.display = name==='modem' ? 'flex' : 'none';
+  $('meterQuickActions').style.display = name==='meter' ? 'flex' : 'none';
   $('alertSubtabsNav').style.display = name==='alerts' ? 'flex' : 'none';
   $('objQuickNav').style.display = name==='objects' ? 'flex' : 'none';
   // objFieldsRow (объект/ресурс/тип учёта, вынесены под общую навигацию 07.09.2026) целиком
@@ -4761,17 +5017,21 @@ switchTab(initialTab);
 
 // ── Подвкладки внутри «Прибор учёта» ──
 function switchMeterTab(name){
-  document.querySelectorAll('#tab-meter .tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.msub===name));
-  document.querySelectorAll('#tab-meter .subtab-panel').forEach(p=>p.classList.toggle('active', p.id==='msub-'+name));
+  document.querySelectorAll('#meterInfoWrap .tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.msub===name));
+  document.querySelectorAll('#meterInfoWrap .subtab-panel').forEach(p=>p.classList.toggle('active', p.id==='msub-'+name));
+  // Почасовке (24 столбца) в узкой карточке тесно — на вкладке «Профиль» карточка встаёт под
+  // список во всю ширину, как раньше был раздел «АСКУЭ».
+  $('mtLayout').classList.toggle('wide', name==='profile');
   try{ localStorage.setItem('activeMeterTab', name); }catch(e){}
-  if(name==='events') loadEventHistory();
 }
-let initialMeterTab='readings';
+let initialMeterTab='overview';
 try{ const t=localStorage.getItem('activeMeterTab'); if(t) initialMeterTab=t; }catch(e){}
-// «bus» переехала во вкладку «Модем» (30 авг) — у кого-то в localStorage могло остаться старое
-// значение, тогда switchMeterTab ничего не найдёт внутри #tab-meter и не покажет ни одной панели.
-if(!['readings','events','settings'].includes(initialMeterTab)) initialMeterTab='readings';
+// Редизайн (этап 3): «Показания» стали «Обзором», «Настройка счётчика» — «Паспортом»; у кого-то в
+// localStorage могут остаться прежние ключи, без перевода switchMeterTab не показал бы ни одной панели.
+initialMeterTab=({readings:'overview', settings:'passport'})[initialMeterTab]||initialMeterTab;
+if(!['overview','profile','energy','events','passport'].includes(initialMeterTab)) initialMeterTab='overview';
 switchMeterTab(initialMeterTab);
+switchMeterRes(meterRes);
 
 renderObjResourcePicker();
 
@@ -4805,10 +5065,9 @@ async function checkContext(){
   if(currentMeterId==null || !allMeters.some(m=>m.id===currentMeterId)){
     currentMeterId = allMeters.length ? allMeters[0].id : null;
   }
-  renderMetersList(allMeters);
   renderMeterPicker(allMeters);
   if(accessRole==='limited'){ loadObjSites(); return; }
-  refresh(); loadInfo(); toggleAuto(); mercuryRefresh(); loadMercuryCfg(); refreshMetersStatus(); loadRegister(); loadTariffSites(); loadObjSites();
+  refresh(); loadInfo(); toggleAuto(); mercuryRefresh(); loadMercuryCfg(); refreshMetersStatus(); loadRegister(); loadTariffSites(); loadObjSites(); loadMetersOverview();
   loadLimits(); loadConsChart(); loadPulseMeters();
 }
 async function addModem(force){
@@ -4864,29 +5123,22 @@ async function deleteModem(){
     checkContext();
   }catch(e){ alert(e.message); }
 }
-function renderMetersList(meters){
-  const box=$('metersList');
-  if(!meters.length){ box.innerHTML='<div style="color:var(--muted);font-size:13px">Счётчиков пока нет</div>'; return; }
-  box.innerHTML=meters.map(m=>
-    `<div class="kv"><span class="k">${esc(m.label||('Счётчик '+m.addr))} · адрес ${m.addr}</span>`+
-    `<span class="v"><button onclick="deleteMeter(${m.id})" style="background:var(--err);padding:5px 10px;font-size:12px">Удалить</button></span></div>`
-  ).join('');
-}
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 async function refreshMetersList(){
   try{
-    const d=await (await fetch(dUrl('/api/meters'))).json();
+    const d=await (await fetch(dUrl('/api/context'))).json();
     allMeters = d.meters||[];
     if(currentMeterId==null || !allMeters.some(m=>m.id===currentMeterId)){
       currentMeterId = allMeters.length ? allMeters[0].id : null;
     }
-    renderMetersList(allMeters);
+    pfMeterId=null;
     renderMeterPicker(allMeters);
-    mercuryRefresh(true); loadMercuryCfg(); refreshMetersStatus(); loadLimits(); loadConsChart();
+    mercuryRefresh(true); loadMercuryCfg(); refreshMetersStatus(); loadLimits(); loadConsChart(); loadMetersOverview();
   }catch(e){}
 }
 async function deleteMeter(id){
-  if(!confirm('Удалить этот счётчик?')) return;
+  const m=allMeters.find(x=>x.id===id);
+  if(!confirm('Удалить прибор «'+(m?meterTitle(m):'#'+id)+'»?\n\nНакопленные почасовки по нему тоже будут удалены. Если прибор просто сняли — лучше «Вывести из эксплуатации»: история и отчёты сохранятся.')) return;
   try{
     const r=await fetch('/api/meters/'+id,{method:'DELETE'});
     if(!r.ok){ const d=await r.json(); throw new Error(d.error||'Ошибка'); }
@@ -4894,10 +5146,9 @@ async function deleteMeter(id){
   }catch(e){ alert(e.message); }
 }
 
-// ── Счётчики импульсов «Пульсар» (22.09.2026) — независимый от Меркурия список, свой picker не
-// нужен (обычно 1-3 строки), рендерим все карточки сразу. editingPulseId — какая карточка сейчас
-// в режиме редактирования (не больше одной одновременно, как и в остальных формах этой панели).
-let pulseMeters=[], editingPulseId=null;
+// ── Счётчики импульсов «Пульсар» (22.09.2026; редизайн 15.10.2026 — вкладка «Вода» в «Приборах
+// учёта», тот же вид «список + карточка», что у электросчётчиков). Строка списка — канал прибора.
+let pulseMeters=[], currentPulseId=null, pulseTab='overview';
 async function loadPulseMeters(){
   try{
     const d=await (await fetch(dUrl('/api/pulse-meters'))).json();
@@ -4933,74 +5184,105 @@ function fmtPulseTs(ts){
   if(diffSec<5400) return Math.round(diffSec/60)+'мин назад';
   return new Date(ts).toLocaleString('ru-RU');
 }
+// Учёт приостановлен — это НЕ вывод из эксплуатации: прибор на месте и считает, просто мы его не
+// опрашиваем (пусконаладка). Поэтому у них разные пометки.
+function pulseLink(m){
+  if(m.decommissioned_at) return { key:'decom', dot:'', text:'выведен из эксплуатации' };
+  if(m.counting_enabled===0) return { key:'paused', dot:'', text:'учёт на паузе' };
+  if(!m.ts) return { key:'wait', dot:'', text:'ожидает опроса' };
+  return m.online ? { key:'on', dot:'online', text:'на связи' } : { key:'off', dot:'err', text:'нет связи' };
+}
 function renderPulseMeters(){
-  const box=$('pulseMetersList'), empty=$('pulseMetersEmpty');
-  if(!pulseMeters.length){ box.innerHTML=''; empty.style.display='block'; return; }
-  empty.style.display='none';
-  box.innerHTML = pulseMeters.map(m=>{
-    const editing = editingPulseId===m.id;
-    const decom = !!m.decommissioned_at;
-    // Учёт приостановлен — это НЕ вывод из эксплуатации: прибор на месте и считает, просто мы
-    // не опрашиваем (пусконаладка). Поэтому отдельная пометка, а не та же красная рамка.
-    const paused = m.counting_enabled===0;
-    const valTxt = m.value==null ? '—' : fmtPulseNum(m.value)+' '+esc(m.unit||'м³');
-    const dotCls = decom ? '' : (m.online ? 'online' : 'err');
-    if(editing){
-      // ТОЛЬКО описательные поля карточки. Вес импульса сюда НЕ входит сознательно: он живёт
-      // в самом приборе и меняется в «Настройке прибора» — раньше он правился в обоих местах,
-      // причём здесь только в базе, и значения разъезжались (реальный случай: в карточке 0.02,
-      // в приборе 0.01 — счётчик импульсов на экране врал вдвое).
-      return `<div class="card" style="margin-bottom:10px;box-shadow:none;border:var(--card-border)" data-pulse-id="${m.id}">
-        <div class="set-row"><label>Название</label><div class="set-in"><input id="pEditLabel${m.id}" value="${esc(m.label||'')}"></div></div>
-        <div class="set-row"><label>Расположение</label><div class="set-in"><input id="pEditLocation${m.id}" value="${esc(m.location||'')}"></div></div>
-        <div class="set-row"><label>Единица</label><div class="set-in"><input id="pEditUnit${m.id}" value="${esc(m.unit||'м³')}" style="max-width:100px"></div></div>
-        <div style="color:var(--muted);font-size:12px;margin:2px 0 10px;line-height:1.5">
-          Вес импульса задаётся в самом приборе — кнопка «Настройка прибора».
-        </div>
-        <div class="row-btns">
-          <button type="button" class="b-off" onclick="savePulseMeter(${m.id})">Сохранить</button>
-          <button type="button" class="ghost" onclick="editingPulseId=null;renderPulseMeters()">Отмена</button>
-        </div>
-      </div>`;
-    }
-    // Выведенный из эксплуатации — рамка (box-shadow, не border — не меняет box-model карточки),
-    // НЕ заливка/прозрачность: тот же принцип, что уже закреплён в проекте для этого статуса
-    // в разделе «Объекты» (.obj-decom-badge) — opacity здесь заодно приглушила бы и кнопки
-    // действий, которые остаются кликабельными (вводит в заблуждение).
-    return `<div class="card" style="margin-bottom:10px;box-shadow:${decom?'inset 0 0 0 1.5px var(--err)':'none'};border:var(--card-border)" data-pulse-id="${m.id}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
-        <div>
-          <div style="font-weight:600;font-size:14px">${esc(m.label||('Вода, канал '+m.channel))}</div>
-          <div style="color:var(--muted);font-size:12px;margin-top:2px">
-            Пульсар №${esc(m.serial)} · канал ${m.channel}${m.location?' · '+esc(m.location):''}${decom?' · выведен из эксплуатации':''}${paused?' · учёт приостановлен':''}
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          ${decom?'':`<span class="dot ${dotCls}"></span>`}
-          <span style="font-family:var(--font-mono);font-weight:600;font-size:15px">${valTxt}</span>
-        </div>
-      </div>
-      <div class="kv"><span class="k">Вес импульса</span><span class="v">${m.pulse_weight==null?'не задан':fmtPulseNum(m.pulse_weight)+' '+esc(m.unit||'м³')}/имп.</span></div>
-      <div class="kv"><span class="k">Учёт</span><span class="v">${paused?'приостановлен':'ведётся'}</span></div>
-      <div class="kv"><span class="k">Опрошен</span><span class="v">${fmtPulseTs(m.ts)}${m.error?' · '+esc(m.error):''}</span></div>
-      ${renderPulseTestPanel(m)}
-      ${renderPulseSetupPanel(m)}
-      <!-- Кнопки в двух группах: сверху ежедневная работа с данными, снизу — настройка и
-           жизненный цикл прибора. Раньше все девять шли одной строкой, и «Сбросить в 0»
-           соседствовал с «Опросить сейчас». -->
-      <div class="row-btns">
-        <button type="button" class="ghost" onclick="pollPulseMeterNow(${m.id})">Опросить сейчас</button>
-        <button type="button" class="ghost" onclick="togglePulseTest(${m.id})">${testOpenId===m.id?'Остановить тест':'Тест входа'}</button>
-        <button type="button" class="${paused?'b-off':'ghost'}" onclick="togglePulseCounting(${m.id},${paused?'true':'false'})">${paused?'Включить учёт':'Приостановить учёт'}</button>
-      </div>
-      <div class="row-btns">
-        <button type="button" class="ghost" onclick="togglePulseSetup(${m.id})">${setupOpenId===m.id?'Скрыть настройку':'Настройка прибора'}</button>
-        <button type="button" class="ghost" onclick="editingPulseId=${m.id};renderPulseMeters()">Изменить карточку</button>
-        <button type="button" class="ghost" onclick="toggleDecommissionPulse(${m.id},${decom?'false':'true'})">${decom?'Вернуть в работу':'Вывести из эксплуатации'}</button>
-        <button type="button" onclick="deletePulseMeter(${m.id})" style="background:var(--err)">Удалить</button>
-      </div>
-    </div>`;
+  $('resCountWater').textContent=pulseMeters.length;
+  const empty=!pulseMeters.length;
+  $('pulseMetersEmpty').style.display=empty?'flex':'none';
+  $('pulseLayout').style.display=empty?'none':'flex';
+  if(empty) return;
+  if(!pulseMeters.some(m=>m.id===currentPulseId)) currentPulseId=pulseMeters[0].id;
+  const head=`<div class="mt-row pl-row mt-head"><span></span><span>Название · место</span><span>Прибор · канал</span>`+
+    `<span class="num">Вес имп.</span><span class="num">Показание</span><span>Состояние</span></div>`;
+  $('pulseMetersList').innerHTML=head+pulseMeters.map(m=>{
+    const link=pulseLink(m), sel=m.id===currentPulseId, u=esc(m.unit||'м³');
+    return `<button type="button" class="mt-row pl-row${sel?' active water':''}${m.decommissioned_at?' decom':''}" onclick="pickPulseRow(${m.id})" aria-pressed="${sel}">`+
+      `<span class="dot ${link.dot}" title="${link.text}" aria-label="${link.text}"></span>`+
+      `<span class="mt-main"><b>${esc(m.label||('Вода, канал '+m.channel))}</b>${m.location?`<small>${esc(m.location)}</small>`:''}</span>`+
+      `<span class="mt-model">№${esc(m.serial)}<small>канал ${m.channel}</small></span>`+
+      `<span class="num">${m.pulse_weight==null?'—':fmtPulseNum(m.pulse_weight)+' '+u}</span>`+
+      `<span class="num strong">${m.value==null?'—':fmtPulseAmount(m.value,m.pulse_weight)+' '+u}</span>`+
+      `<span class="mt-state ${link.key}">${link.text}</span></button>`;
   }).join('');
+  renderPulseCard();
+}
+function pickPulseRow(id){
+  if(id!==currentPulseId){
+    currentPulseId=id;
+    if(testTimer){ clearInterval(testTimer); testTimer=null; } testOpenId=null;
+    setupOpenId=null;
+  }
+  renderPulseMeters();
+  if(pulseTab==='device') openPulseSetup(id);
+  if(window.matchMedia('(max-width:1100px)').matches) $('pulseCard').scrollIntoView({behavior:'smooth', block:'start'});
+}
+function setPulseTab(t){
+  pulseTab=t;
+  renderPulseCard(true);
+  if(t==='device' && setupOpenId!==currentPulseId) openPulseSetup(currentPulseId);
+}
+// Карточка перерисовывается целиком на каждом автообновлении (раз в 10 с) и в тесте входа (раз в
+// 2 с). Пока человек печатает в поле карточки — не трогаем её вовсе (иначе пропадал бы фокус), а
+// набранные, но не сохранённые значения переносим в новую разметку по id поля.
+function renderPulseCard(force){
+  const card=$('pulseCard');
+  const m=pulseMeters.find(x=>x.id===currentPulseId); if(!m){ card.innerHTML=''; return; }
+  const act=document.activeElement;
+  if(!force && act && card.contains(act) && (act.tagName==='INPUT'||act.tagName==='SELECT')) return;
+  const keep={};
+  if(card.dataset.pid===String(m.id)) card.querySelectorAll('input[id]').forEach(i=>{ keep[i.id]=i.type==='checkbox'?i.checked:i.value; });
+  const link=pulseLink(m), u=esc(m.unit||'м³'), paused=m.counting_enabled===0, decom=!!m.decommissioned_at;
+  const tabs=[['overview','Обзор'],['device','Настройка прибора'],['passport','Паспорт']].map(([k,l])=>
+    `<button class="tab-btn${pulseTab===k?' active':''}" onclick="setPulseTab('${k}')"><span class="tab-btn-label">${l}</span></button>`).join('');
+  let body='';
+  if(pulseTab==='overview'){
+    body=`<div class="mc-readings">
+        <div><span class="mc-cap">Накоплено</span><b>${m.value==null?'—':fmtPulseAmount(m.value,m.pulse_weight)+' '+u}</b></div>
+        <div><span class="mc-cap">Вес импульса</span><b>${m.pulse_weight==null?'не задан':fmtPulseNum(m.pulse_weight)+' '+u}</b></div>
+        <div><span class="mc-cap">Опрошен</span><b class="mc-small">${fmtPulseTs(m.ts)}</b></div>
+      </div>
+      ${m.error&&!paused?`<div class="mc-err" style="display:block">Последняя ошибка опроса: ${esc(m.error)}</div>`:''}
+      <div class="kv"><span class="k">Учёт</span><span class="v">${paused?'приостановлен — опрос и история не пишутся':'ведётся, снимок каждые 10 минут'}</span></div>
+      ${renderPulseTestPanel(m)}
+      <div class="mc-actions">
+        <button type="button" onclick="pollPulseMeterNow(${m.id})">Опросить сейчас</button>
+        <button type="button" class="ghost" onclick="togglePulseTest(${m.id})">${testOpenId===m.id?'Остановить тест':'Тест входа'}</button>
+        <button type="button" class="ghost" onclick="togglePulseCounting(${m.id},${paused?'true':'false'})">${paused?'Включить учёт':'Приостановить учёт'}</button>
+      </div>`;
+  } else if(pulseTab==='device'){
+    body=renderPulseSetupPanel(m) || `<div class="mc-note">Читаю настройки прибора…</div>`;
+  } else {
+    body=`<div class="mc-form">
+        <label class="mc-field">Название<input id="pEditLabel${m.id}" value="${esc(m.label||'')}"></label>
+        <label class="mc-field">Расположение<input id="pEditLocation${m.id}" value="${esc(m.location||'')}"></label>
+        <label class="mc-field">Единица<input id="pEditUnit${m.id}" value="${esc(m.unit||'м³')}"></label>
+      </div>
+      <div class="mc-note">Вес импульса живёт в самом приборе и меняется во вкладке «Настройка прибора».</div>
+      <div class="mc-actions"><button type="button" onclick="savePulseMeter(${m.id})">Сохранить</button><span class="mc-saved" id="pEditMsg${m.id}"></span></div>
+      <div class="mc-sec">Прибор</div>
+      <div class="kv"><span class="k">Серийный № (= адрес на шине)</span><span class="v">${esc(m.serial)}</span></div>
+      <div class="kv"><span class="k">Канал</span><span class="v">${m.channel}</span></div>
+      <div class="mc-sec">Эксплуатация</div>
+      <div class="mc-life"><div style="font-size:13px">${decom?'<b style="color:var(--warn)">Выведен из эксплуатации</b>':'<b style="color:var(--on)">В работе</b>'}</div>
+        <button type="button" class="ghost" onclick="toggleDecommissionPulse(${m.id},${decom?'false':'true'})">${decom?'Вернуть в работу':'Вывести из эксплуатации'}</button></div>
+      <div class="mc-actions mc-danger"><button type="button" class="btn-danger" onclick="deletePulseMeter(${m.id})">Удалить канал</button></div>`;
+  }
+  card.dataset.pid=String(m.id);
+  card.innerHTML=`<div class="mc-head">
+      <div class="mc-head-text"><div class="mc-title">${esc(m.label||('Вода, канал '+m.channel))}</div>
+        <div class="mc-sub">«Пульсар» №${esc(m.serial)} · канал ${m.channel}${m.location?' · '+esc(m.location):''}</div></div>
+      <span class="mc-badge ${link.key}">${link.text}</span>
+    </div>
+    <div class="tabs mc-tabs" role="tablist" aria-label="Разделы канала">${tabs}</div>
+    <div class="mc-pane">${body}</div>`;
+  for(const id in keep){ const el=$(id); if(el){ if(el.type==='checkbox') el.checked=keep[id]; else el.value=keep[id]; } }
 }
 // ── Живой тест входа (22.09.2026) — для проверки «перемкнул клеммы — увидел глазами».
 // Опрос раз в 2с (фоновый идёт раз в 30с — этого хватает в работе, но не для проверки руками). Состояние держим в pulseTest, а не только в DOM: общий автообновлятор
@@ -5128,9 +5410,8 @@ function renderPulseSetupPanel(m){
     <div id="pDurMsg${id}" style="font-size:12px;margin-top:6px"></div>
   </div>`;
 }
-async function togglePulseSetup(id){
-  if(setupOpenId===id){ setupOpenId=null; renderPulseMeters(); return; }
-  setupOpenId=id; pulseSetup[id]='loading'; renderPulseMeters();
+async function openPulseSetup(id){
+  setupOpenId=id; pulseSetup[id]='loading'; renderPulseCard(true);
   await loadPulseSetup(id);
 }
 async function loadPulseSetup(id){
@@ -5139,7 +5420,8 @@ async function loadPulseSetup(id){
     const d=await r.json();
     pulseSetup[id] = r.ok ? d : { error: d.error||'Ошибка' };
   }catch(e){ pulseSetup[id] = { error: 'Ошибка сети' }; }
-  renderPulseMeters();
+  $('pulseCard').dataset.pid=''; // свежие значения из прибора, а не набранные до записи
+  renderPulseCard(true);
 }
 async function savePulseWeightToDevice(id){
   const msgEl = $('pDurMsg'+id);
@@ -5159,11 +5441,6 @@ async function savePulseWeightToDevice(id){
     loadPulseMeters();
   }catch(e){ msgEl.style.color='var(--err)'; msgEl.textContent=e.message; }
 }
-function togglePulseAddForm(){
-  const f=$('pulseAddForm');
-  f.style.display = f.style.display==='none' ? 'block' : 'none';
-  $('pulseAddErr').style.display='none';
-}
 async function submitPulseAdd(){
   const err=$('pulseAddErr');
   err.style.display='none';
@@ -5180,7 +5457,9 @@ async function submitPulseAdd(){
     if(!r.ok) throw new Error(d.error||'Ошибка');
     $('pulseAddSerial').value=''; $('pulseAddLabel').value=''; $('pulseAddWeight').value=''; $('pulseAddLocation').value='';
     $('pulseAddChannel').value='1';
-    togglePulseAddForm();
+    closeAddDrawer();
+    if(d.meter && d.meter.id) currentPulseId=d.meter.id;
+    switchMeterRes('water');
     loadPulseMeters();
   }catch(e){ err.textContent=e.message; err.style.display='block'; }
 }
@@ -5188,15 +5467,16 @@ async function savePulseMeter(id){
   const body={
     label: $('pEditLabel'+id).value.trim(),
     location: $('pEditLocation'+id).value.trim(),
-    pulseWeight: $('pEditWeight'+id).value,
     unit: $('pEditUnit'+id).value.trim(),
   };
+  const msg=$('pEditMsg'+id);
   try{
     const r=await fetch(dUrl('/api/pulse-meters/'+id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(!r.ok){ const d=await r.json(); throw new Error(d.error||'Ошибка'); }
-    editingPulseId=null;
-    loadPulseMeters();
-  }catch(e){ alert(e.message); }
+    $('pulseCard').dataset.pid='';
+    await loadPulseMeters();
+    const m2=$('pEditMsg'+id); if(m2) m2.textContent='Сохранено';
+  }catch(e){ if(msg){ msg.className='mc-saved err'; msg.textContent=e.message; } else alert(e.message); }
 }
 async function pollPulseMeterNow(id){
   try{
@@ -5293,10 +5573,11 @@ async function pollScanStatus(){
 function renderScanCandidates(addrs){
   const box=$('scanCandidates');
   if(!addrs.length){ box.innerHTML='<div style="color:var(--muted);font-size:13px">Поиск завершён, новых счётчиков не найдено</div>'; return; }
-  box.innerHTML=addrs.map(a=>
-    `<div class="kv"><span class="k">Адрес ${a}</span>`+
-    `<span class="v"><button onclick="addMeterFromCandidate(${a})" style="padding:5px 10px;font-size:12px">Добавить</button></span></div>`
-  ).join('');
+  box.innerHTML=addrs.map(a=>{
+    const known=allMeters.find(m=>m.addr===a);
+    return `<div class="kv"><span class="k">Адрес ${a}${known?' · '+esc(meterTitle(known)):''}</span>`+
+      `<span class="v">${known?'<span class="mt-state on">уже добавлен</span>':`<button onclick="addMeterFromCandidate(${a})" style="padding:5px 10px;font-size:12px">Добавить</button>`}</span></div>`;
+  }).join('');
 }
 async function addMeterFromCandidate(addr){
   const label=prompt('Название счётчика', 'Счётчик '+addr);
@@ -5305,7 +5586,8 @@ async function addMeterFromCandidate(addr){
     const r=await fetch(dUrl('/api/meters'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({addr,label})});
     const d=await r.json();
     if(!r.ok) throw new Error(d.error||'Ошибка');
-    refreshMetersList();
+    if(d.meter && d.meter.id) currentMeterId=d.meter.id;
+    await refreshMetersList();
     pollScanStatus();
   }catch(e){ alert(e.message); }
 }

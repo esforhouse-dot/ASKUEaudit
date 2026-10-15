@@ -1504,6 +1504,30 @@ app.get('/api/meters/status', (req, res) => {
   const online = meters.filter(m => state.getMeterState(m.id).cachedMercury.online === true).length;
   res.json({ total: meters.length, online });
 });
+// Сводка по всем счётчикам модема для списка «Приборов учёта» (редизайн, этап 3,
+// UI_REDESIGN_PLAN.md): связь, неквитированные тревоги, показание и расход с начала месяца —
+// одним запросом на весь список, а не по запросу на прибор. Показания считает тот же
+// computeReadingPeriod, что и «Объекты» (иначе цифры двух разделов рано или поздно разошлись бы),
+// но без фильтра по объекту: в списке должны быть и приборы, ещё не привязанные к объекту.
+app.get('/api/meters/overview', (req, res) => {
+  if (!req.modem) return res.json({ today: null, monthStart: null, meters: [] });
+  const today = hourSlot(Date.now()).date;
+  const monthStart = today.slice(0, 8) + '01';
+  const rows = db.prepare('SELECT * FROM meters WHERE modem_id = ? ORDER BY id').all(req.modem.id);
+  const meters = rows.map((m) => {
+    const cm = state.getMeterState(m.id).cachedMercury;
+    const { consumptionKwh: rawKwh, startReading, endReading } = computeReadingPeriod(m.id, monthStart, today, today);
+    const { consumptionKwh } = scaleByCtRatio(rawKwh, null, m.ct_ratio);
+    return {
+      id: m.id, online: cm.online === true, polledAt: cm.ts || null, error: cm.online === false ? (cm.error || null) : null,
+      alarm: (eventsToBitmask(cm.events) & ~m.ack_event_bits) !== 0,
+      startReading, endReading, consumptionKwh,
+      tenantName: m.tenant_name || null, rentalName: m.rental_name || null,
+      reportDay: m.report_day || null, manufactureDate: m.manufacture_date || null,
+    };
+  });
+  res.json({ today, monthStart, meters });
+});
 
 // ── Счётчики текущего модема (Фаза 6) ─────────────────────────────────────────
 app.get('/api/meters', (req, res) => {
