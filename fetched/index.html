@@ -1473,6 +1473,49 @@
         </div>
       </div>
     </div>
+
+    <!-- ── Счётчики импульсов (22.09.2026) — отдельный подраздел «Приборы учёта», независимый от
+         выбора счётчика Меркурия выше (другой прибор, другой протокол, свой список). ── -->
+    <h2 class="sec-title">Счётчики импульсов (вода)</h2>
+    <div class="card" id="pulseMetersCard">
+      <div id="pulseMetersEmpty" style="color:var(--muted);font-size:13px;display:none">Счётчики импульсов не добавлены</div>
+      <div id="pulseMetersList"></div>
+      <div class="row-btns">
+        <button type="button" class="nav-action-btn" onclick="togglePulseAddForm()" id="pulseAddToggleBtn">Добавить счётчик импульсов</button>
+      </div>
+      <div id="pulseAddForm" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+        <div class="set-row">
+          <label>Серийный № прибора «Пульсар»</label>
+          <div class="set-in"><input id="pulseAddSerial" placeholder="напр. 5015735"></div>
+        </div>
+        <div class="set-row">
+          <label>Канал (1—16)</label>
+          <div class="set-in"><input id="pulseAddChannel" type="number" min="1" max="16" value="1" style="max-width:90px"></div>
+        </div>
+        <div class="set-row">
+          <label>Название</label>
+          <div class="set-in"><input id="pulseAddLabel" placeholder="напр. Вода ХВС, ИТП"></div>
+        </div>
+        <div class="set-row">
+          <label>Вес импульса, м³</label>
+          <div class="set-in"><input id="pulseAddWeight" type="number" step="any" min="0" placeholder="напр. 0.01" style="max-width:120px"></div>
+        </div>
+        <div class="set-row">
+          <label>Расположение</label>
+          <div class="set-in"><input id="pulseAddLocation" placeholder="напр. ИТП, ввод ХВС"></div>
+        </div>
+        <div class="row-btns">
+          <button type="button" class="b-off" onclick="submitPulseAdd()">Сохранить</button>
+          <button type="button" class="ghost" onclick="togglePulseAddForm()">Отмена</button>
+        </div>
+        <div id="pulseAddErr" style="display:none;color:var(--err);font-size:12px;margin-top:8px"></div>
+      </div>
+      <div style="color:var(--muted);font-size:12px;margin-top:12px">
+        Адрес прибора на шине — его серийный номер с этикетки (не нужно сканировать, в отличие от
+        Меркурия). Один прибор «Пульсар» несёт до нескольких независимых счётчиков (по каналам) —
+        добавляйте по одному счётчику импульсов на каждый задействованный канал одного и того же серийника.
+      </div>
+    </div>
   </div>
 
   <!-- ── АСКУЭ (графики и почасовка) ── -->
@@ -2365,7 +2408,7 @@ function copySms(){
 
 function toggleAuto(){
   // читаем кэш часто (лёгкий запрос), фон на сервере опрашивает модем раз в 30с
-  if($('autoChk').checked){ autoTimer=setInterval(()=>{refresh(true); mercuryRefresh(true); refreshMetersStatus();},10000); }
+  if($('autoChk').checked){ autoTimer=setInterval(()=>{refresh(true); mercuryRefresh(true); refreshMetersStatus(); loadPulseMeters();},10000); }
   else { clearInterval(autoTimer); autoTimer=null; }
 }
 
@@ -4695,7 +4738,7 @@ async function checkContext(){
   renderMeterPicker(allMeters);
   if(accessRole==='limited'){ loadObjSites(); return; }
   refresh(); loadInfo(); toggleAuto(); mercuryRefresh(); loadMercuryCfg(); refreshMetersStatus(); loadRegister(); loadTariffSites(); loadObjSites();
-  loadLimits(); loadConsChart();
+  loadLimits(); loadConsChart(); loadPulseMeters();
 }
 async function addModem(force){
   const imei = document.getElementById('newImei').value.trim();
@@ -4777,6 +4820,377 @@ async function deleteMeter(id){
     const r=await fetch('/api/meters/'+id,{method:'DELETE'});
     if(!r.ok){ const d=await r.json(); throw new Error(d.error||'Ошибка'); }
     refreshMetersList();
+  }catch(e){ alert(e.message); }
+}
+
+// ── Счётчики импульсов «Пульсар» (22.09.2026) — независимый от Меркурия список, свой picker не
+// нужен (обычно 1-3 строки), рендерим все карточки сразу. editingPulseId — какая карточка сейчас
+// в режиме редактирования (не больше одной одновременно, как и в остальных формах этой панели).
+let pulseMeters=[], editingPulseId=null;
+async function loadPulseMeters(){
+  try{
+    const d=await (await fetch(dUrl('/api/pulse-meters'))).json();
+    pulseMeters = d.meters||[];
+    renderPulseMeters();
+  }catch(e){}
+}
+// Прибор хранит и отдаёт числа во float32, из-за чего 0.001 возвращается как
+// 0.0010000000474974513, а 40.15 — как 40.15398406982422. Показывать это «как есть» нельзя:
+// 6 значащих цифр покрывают любой реальный вес импульса и любые показания, а хвост float32
+// при этом отсекается.
+function fmtPulseNum(v){
+  if(v==null || !Number.isFinite(v)) return '—';
+  return String(parseFloat(Number(v).toPrecision(6)));
+}
+// Сколько знаков после запятой имеет смысл показывать при данном весе импульса: физически
+// показание меняется только шагами по весу, поэтому цифры мельче веса — это всегда шум float32,
+// а не измерение. Вес 0.002 -> 3 знака, 0.01 -> 2, 1 -> 0.
+function pulseDecimals(w){
+  if(!w || !Number.isFinite(w) || w<=0) return 3;
+  return Math.max(0, Math.min(6, Math.ceil(-Math.log10(w))));
+}
+// Абсолютное показание: режем хвост float32 по шагу веса (v может не лежать на сетке веса —
+// начальные показания задаёт человек произвольным числом, поэтому только формат, без «снапа»).
+function fmtPulseAmount(v, w){
+  if(v==null || !Number.isFinite(v)) return '—';
+  return Number(v).toFixed(pulseDecimals(w));
+}
+function fmtPulseTs(ts){
+  if(!ts) return 'ещё не опрашивался';
+  const diffSec = Math.round((Date.now()-ts)/1000);
+  if(diffSec<90) return diffSec+'с назад';
+  if(diffSec<5400) return Math.round(diffSec/60)+'мин назад';
+  return new Date(ts).toLocaleString('ru-RU');
+}
+function renderPulseMeters(){
+  const box=$('pulseMetersList'), empty=$('pulseMetersEmpty');
+  if(!pulseMeters.length){ box.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  box.innerHTML = pulseMeters.map(m=>{
+    const editing = editingPulseId===m.id;
+    const decom = !!m.decommissioned_at;
+    // Учёт приостановлен — это НЕ вывод из эксплуатации: прибор на месте и считает, просто мы
+    // не опрашиваем (пусконаладка). Поэтому отдельная пометка, а не та же красная рамка.
+    const paused = m.counting_enabled===0;
+    const valTxt = m.value==null ? '—' : fmtPulseNum(m.value)+' '+esc(m.unit||'м³');
+    const dotCls = decom ? '' : (m.online ? 'online' : 'err');
+    if(editing){
+      // ТОЛЬКО описательные поля карточки. Вес импульса сюда НЕ входит сознательно: он живёт
+      // в самом приборе и меняется в «Настройке прибора» — раньше он правился в обоих местах,
+      // причём здесь только в базе, и значения разъезжались (реальный случай: в карточке 0.02,
+      // в приборе 0.01 — счётчик импульсов на экране врал вдвое).
+      return `<div class="card" style="margin-bottom:10px;box-shadow:none;border:var(--card-border)" data-pulse-id="${m.id}">
+        <div class="set-row"><label>Название</label><div class="set-in"><input id="pEditLabel${m.id}" value="${esc(m.label||'')}"></div></div>
+        <div class="set-row"><label>Расположение</label><div class="set-in"><input id="pEditLocation${m.id}" value="${esc(m.location||'')}"></div></div>
+        <div class="set-row"><label>Единица</label><div class="set-in"><input id="pEditUnit${m.id}" value="${esc(m.unit||'м³')}" style="max-width:100px"></div></div>
+        <div style="color:var(--muted);font-size:12px;margin:2px 0 10px;line-height:1.5">
+          Вес импульса задаётся в самом приборе — кнопка «Настройка прибора».
+        </div>
+        <div class="row-btns">
+          <button type="button" class="b-off" onclick="savePulseMeter(${m.id})">Сохранить</button>
+          <button type="button" class="ghost" onclick="editingPulseId=null;renderPulseMeters()">Отмена</button>
+        </div>
+      </div>`;
+    }
+    // Выведенный из эксплуатации — рамка (box-shadow, не border — не меняет box-model карточки),
+    // НЕ заливка/прозрачность: тот же принцип, что уже закреплён в проекте для этого статуса
+    // в разделе «Объекты» (.obj-decom-badge) — opacity здесь заодно приглушила бы и кнопки
+    // действий, которые остаются кликабельными (вводит в заблуждение).
+    return `<div class="card" style="margin-bottom:10px;box-shadow:${decom?'inset 0 0 0 1.5px var(--err)':'none'};border:var(--card-border)" data-pulse-id="${m.id}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:600;font-size:14px">${esc(m.label||('Вода, канал '+m.channel))}</div>
+          <div style="color:var(--muted);font-size:12px;margin-top:2px">
+            Пульсар №${esc(m.serial)} · канал ${m.channel}${m.location?' · '+esc(m.location):''}${decom?' · выведен из эксплуатации':''}${paused?' · учёт приостановлен':''}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${decom?'':`<span class="dot ${dotCls}"></span>`}
+          <span style="font-family:var(--font-mono);font-weight:600;font-size:15px">${valTxt}</span>
+        </div>
+      </div>
+      <div class="kv"><span class="k">Вес импульса</span><span class="v">${m.pulse_weight==null?'не задан':fmtPulseNum(m.pulse_weight)+' '+esc(m.unit||'м³')}/имп.</span></div>
+      <div class="kv"><span class="k">Учёт</span><span class="v">${paused?'приостановлен':'ведётся'}</span></div>
+      <div class="kv"><span class="k">Опрошен</span><span class="v">${fmtPulseTs(m.ts)}${m.error?' · '+esc(m.error):''}</span></div>
+      ${renderPulseTestPanel(m)}
+      ${renderPulseSetupPanel(m)}
+      <!-- Кнопки в двух группах: сверху ежедневная работа с данными, снизу — настройка и
+           жизненный цикл прибора. Раньше все девять шли одной строкой, и «Сбросить в 0»
+           соседствовал с «Опросить сейчас». -->
+      <div class="row-btns">
+        <button type="button" class="ghost" onclick="pollPulseMeterNow(${m.id})">Опросить сейчас</button>
+        <button type="button" class="ghost" onclick="togglePulseTest(${m.id})">${testOpenId===m.id?'Остановить тест':'Тест входа'}</button>
+        <button type="button" class="${paused?'b-off':'ghost'}" onclick="togglePulseCounting(${m.id},${paused?'true':'false'})">${paused?'Включить учёт':'Приостановить учёт'}</button>
+      </div>
+      <div class="row-btns">
+        <button type="button" class="ghost" onclick="togglePulseSetup(${m.id})">${setupOpenId===m.id?'Скрыть настройку':'Настройка прибора'}</button>
+        <button type="button" class="ghost" onclick="editingPulseId=${m.id};renderPulseMeters()">Изменить карточку</button>
+        <button type="button" class="ghost" onclick="toggleDecommissionPulse(${m.id},${decom?'false':'true'})">${decom?'Вернуть в работу':'Вывести из эксплуатации'}</button>
+        <button type="button" onclick="deletePulseMeter(${m.id})" style="background:var(--err)">Удалить</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+// ── Живой тест входа (22.09.2026) — для проверки «перемкнул клеммы — увидел глазами».
+// Опрос раз в 2с (фоновый идёт раз в 30с — этого хватает в работе, но не для проверки руками). Состояние держим в pulseTest, а не только в DOM: общий автообновлятор
+// (loadPulseMeters раз в 10с) перерисовывает список целиком, и панель должна пережить перерисовку
+// с последними значениями, а не мигать прочерками.
+let testOpenId=null, testTimer=null, pulseTest={};
+function renderPulseTestPanel(m){
+  if(testOpenId!==m.id) return '';
+  const t=pulseTest[m.id]||{};
+  const unit=esc(m.unit||'м³');
+  const w = m.pulse_weight;
+  const valTxt = t.value==null ? '—' : fmtPulseAmount(t.value, w)+' '+unit;
+  const pulses = t.pulses==null ? 0 : t.pulses;
+  // Прирост показываем как «импульсы × вес», а не как сырую разницу двух показаний: прибор
+  // хранит значения во float32, и вычитание двух близких чисел порядка 10 оставляет в ответе
+  // их собственную погрешность (~1e-6) — 4 импульса по 0.002 давали «0.00799942» вместо 0.008.
+  // Число импульсов при этом считается верно (округление 3.9997 -> 4), поэтому оно и есть
+  // надёжная величина, из которой восстанавливается объём.
+  const deltaTxt = (t.startValue==null||t.value==null) ? '—'
+    : (w ? fmtPulseAmount(pulses*w, w) : fmtPulseNum(t.value-t.startValue))+' '+unit;
+  // Счётчик импульсов — крупно и отдельно: это то, на что смотрят во время перемыкания клемм.
+  // Состояние самого контакта прибор отдавать не умеет (F=0x19 отвечает «нет такой функции»,
+  // проверено живьём), поэтому факт замыкания виден именно по приросту счётчика.
+  return `<div style="margin-top:8px;padding:12px;border:1px dashed var(--line);border-radius:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="color:var(--muted);font-size:12px">Насчитано за тест</span>
+      <span style="font-family:var(--font-mono);font-weight:700;font-size:22px;${pulses?'color:var(--on)':''}">${pulses} имп.</span>
+    </div>
+    <div class="kv"><span class="k">Прирост</span><span class="v">${deltaTxt}</span></div>
+    <div class="kv"><span class="k">Показание сейчас</span><span class="v">${valTxt}${t.error?' · '+esc(t.error):''}</span></div>
+    <div style="color:var(--muted);font-size:12px;margin-top:8px;line-height:1.5">
+      Перемыкайте клеммы канала ${m.channel} — опрос идёт раз в 2 с. Каждое замыкание длиннее
+      заданной длительности импульса должно добавлять 1 имп.${m.pulse_weight?' ('+m.pulse_weight+' '+unit+')':''}
+      Состояние контакта прибор по протоколу не отдаёт — ориентир именно счётчик выше.
+    </div>
+  </div>`;
+}
+async function togglePulseTest(id){
+  if(testTimer){ clearInterval(testTimer); testTimer=null; }
+  if(testOpenId===id){ testOpenId=null; renderPulseMeters(); return; }
+  testOpenId=id; pulseTest[id]={ startValue:null, value:null, input:null, pulses:0, error:null };
+  renderPulseMeters();
+  pulseTestTick(id);
+  testTimer=setInterval(()=>pulseTestTick(id),2000);
+}
+async function pulseTestTick(id){
+  if(testOpenId!==id){ if(testTimer){clearInterval(testTimer); testTimer=null;} return; }
+  const t=pulseTest[id]||{};
+  try{
+    const r=await fetch(dUrl('/api/pulse-meters/'+id+'/input-test'));
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Ошибка');
+    t.error=null; t.input=d.input;
+    if(d.value!=null){
+      if(t.startValue==null) t.startValue=d.value;
+      t.value=d.value;
+      // Число импульсов считаем из прироста показания и веса импульса: сам прибор отдаёт уже
+      // объём, а не счётчик импульсов, поэтому «импульсы» тут — производная величина.
+      const w=d.pulseWeight;
+      t.pulses = w ? Math.round((d.value-t.startValue)/w) : null;
+    }
+  }catch(e){ t.error=e.message; }
+  pulseTest[id]=t;
+  if(testOpenId===id) renderPulseMeters();
+}
+// ── «Настройка прибора» (22.09.2026) — ЕДИНСТВЕННОЕ место, где что-то пишется В САМ ПРИБОР:
+// вес импульса и текущие показания. Отделено от «Изменить карточку» (название/расположение/
+// единица — только наша база) намеренно: раньше вес правился в обоих местах, причём в карточке
+// только локально, и значения расходились незаметно для человека.
+let setupOpenId=null, pulseSetup={};
+function renderPulseSetupPanel(m){
+  const id=m.id;
+  if(setupOpenId!==id) return '';
+  const d=pulseSetup[id];
+  if(d==='loading') return `<div style="color:var(--muted);font-size:12px;margin:10px 0">Читаю настройки прибора…</div>`;
+  if(!d || d.error) return `<div style="color:var(--err);font-size:12px;margin:10px 0">Ошибка: ${esc(d&&d.error||'нет данных')}</div>`;
+  // Прибор хранит вес во float32, поэтому 0.001 возвращается как 0.0010000000474974513 —
+  // показывать это пользователю нельзя, а сравнивать «в лоб» с числом из базы (double) нельзя
+  // тем более: сравниваем ОБА через Math.fround, т.е. в той же точности, в какой живёт прибор.
+  const dev=d.deviceWeight, app=d.appWeight, u=esc(d.unit||'м³');
+  const mismatch = dev!=null && app!=null && Math.fround(dev)!==Math.fround(app);
+  const devTxt = dev==null?'—':fmtPulseNum(dev)+' '+u;
+  const curVal = m.value==null ? '' : fmtPulseNum(m.value);
+  return `<div style="margin-top:8px;padding-top:10px;border-top:1px solid var(--line)">
+    <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:6px">Вес импульса</div>
+    ${mismatch
+      ? `<div class="kv"><span class="k">Сейчас в приборе (канал ${d.channel??m.channel})</span><span class="v">${devTxt}</span></div>
+         <div class="kv"><span class="k">В карточке</span><span class="v">${app==null?'не задан':fmtPulseNum(app)+' '+u}</span></div>
+         <div style="color:var(--err);font-size:12px;margin:8px 0;line-height:1.5">
+           ⚠ Значения расходятся — показания искажаются в ${app?fmtPulseNum(dev/app):'?'}× раз.
+           Запишите правильный вес из паспорта водосчётчика.
+         </div>`
+      : `<div class="kv"><span class="k">Сейчас в приборе (канал ${d.channel??m.channel})</span><span class="v">${devTxt}</span></div>`}
+    <div class="set-row" style="margin-top:8px">
+      <label>Новый вес</label>
+      <div class="set-in">
+        <input id="pWeight${id}" type="number" step="any" min="0" value="${dev==null?(app==null?'':fmtPulseNum(app)):fmtPulseNum(dev)}" style="max-width:130px">
+        <button type="button" class="b-off" style="flex:none;padding:9px 14px" onclick="savePulseWeightToDevice(${id})">Записать в прибор</button>
+      </div>
+    </div>
+    <div style="color:var(--muted);font-size:12px;margin-top:2px;line-height:1.5">
+      Прибор сам умножает импульсы на этот вес и отдаёт готовый объём — значение кратно влияет на
+      все последующие показания. Запись обновляет и прибор, и карточку одновременно.
+    </div>
+
+    <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin:16px 0 6px">Показания</div>
+    <div class="set-row">
+      <label>Текущие показания</label>
+      <div class="set-in">
+        <input id="pValue${id}" type="number" step="any" min="0" value="${curVal}" style="max-width:130px">
+        <button type="button" class="b-off" style="flex:none;padding:9px 14px" onclick="savePulseValueToDevice(${id})">Записать в прибор</button>
+        <button type="button" class="ghost" style="flex:none;padding:9px 14px" onclick="resetPulseValue(${id})">Сбросить в 0</button>
+      </div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;margin-top:4px;cursor:pointer">
+      <input type="checkbox" id="pClearHist${id}" style="width:auto;margin:0"> очистить историю показаний
+    </label>
+    <div style="color:var(--muted);font-size:12px;margin-top:6px;line-height:1.5">
+      Значение пишется в сам прибор — дальше счёт идёт от него. Панель раз в 30 секунд сохраняет
+      показание в свою историю, и расход за период считается как разница первого и последнего
+      снимка. Поэтому если записать значение МЕНЬШЕ текущего (например, сбросить в 0), период,
+      захвативший сброс, даст расход со знаком минус — галочка удаляет прежние снимки по этому
+      счётчику, чтобы отсчёт начался заново.
+    </div>
+    <div id="pDurMsg${id}" style="font-size:12px;margin-top:6px"></div>
+  </div>`;
+}
+async function togglePulseSetup(id){
+  if(setupOpenId===id){ setupOpenId=null; renderPulseMeters(); return; }
+  setupOpenId=id; pulseSetup[id]='loading'; renderPulseMeters();
+  await loadPulseSetup(id);
+}
+async function loadPulseSetup(id){
+  try{
+    const r=await fetch(dUrl('/api/pulse-meters/'+id+'/debug'));
+    const d=await r.json();
+    pulseSetup[id] = r.ok ? d : { error: d.error||'Ошибка' };
+  }catch(e){ pulseSetup[id] = { error: 'Ошибка сети' }; }
+  renderPulseMeters();
+}
+async function savePulseWeightToDevice(id){
+  const msgEl = $('pDurMsg'+id);
+  const weight = parseFloat($('pWeight'+id).value);
+  if(!Number.isFinite(weight) || weight<=0 || weight>1000){ msgEl.style.color='var(--err)'; msgEl.textContent='Вес должен быть больше 0 и не больше 1000'; return; }
+  // Подтверждение обязательно: ошибка здесь кратно искажает все дальнейшие показания клиента.
+  if(!confirm('Записать в прибор вес импульса '+weight+'?\n\nПрибор умножает импульсы на этот вес — неверное значение исказит все последующие показания.')) return;
+  msgEl.style.color='var(--muted)'; msgEl.textContent='Записываю…';
+  try{
+    const r=await fetch(dUrl('/api/pulse-meters/'+id+'/debug'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({weight})});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Ошибка');
+    // Перечитываем настройки из прибора и карточку — обновлённые значения на экране сами по себе
+    // подтверждают успех, без промежуточного «Записано» (тот msgEl всё равно уничтожается
+    // рендером и не смог бы показать последующую ошибку, если бы она случилась).
+    await loadPulseSetup(id);
+    loadPulseMeters();
+  }catch(e){ msgEl.style.color='var(--err)'; msgEl.textContent=e.message; }
+}
+function togglePulseAddForm(){
+  const f=$('pulseAddForm');
+  f.style.display = f.style.display==='none' ? 'block' : 'none';
+  $('pulseAddErr').style.display='none';
+}
+async function submitPulseAdd(){
+  const err=$('pulseAddErr');
+  err.style.display='none';
+  const body={
+    serial: $('pulseAddSerial').value.trim(),
+    channel: parseInt($('pulseAddChannel').value,10),
+    label: $('pulseAddLabel').value.trim(),
+    pulseWeight: $('pulseAddWeight').value,
+    location: $('pulseAddLocation').value.trim(),
+  };
+  try{
+    const r=await fetch(dUrl('/api/pulse-meters'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Ошибка');
+    $('pulseAddSerial').value=''; $('pulseAddLabel').value=''; $('pulseAddWeight').value=''; $('pulseAddLocation').value='';
+    $('pulseAddChannel').value='1';
+    togglePulseAddForm();
+    loadPulseMeters();
+  }catch(e){ err.textContent=e.message; err.style.display='block'; }
+}
+async function savePulseMeter(id){
+  const body={
+    label: $('pEditLabel'+id).value.trim(),
+    location: $('pEditLocation'+id).value.trim(),
+    pulseWeight: $('pEditWeight'+id).value,
+    unit: $('pEditUnit'+id).value.trim(),
+  };
+  try{
+    const r=await fetch(dUrl('/api/pulse-meters/'+id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!r.ok){ const d=await r.json(); throw new Error(d.error||'Ошибка'); }
+    editingPulseId=null;
+    loadPulseMeters();
+  }catch(e){ alert(e.message); }
+}
+async function pollPulseMeterNow(id){
+  try{
+    const r=await fetch(dUrl('/api/pulse-meters/'+id+'/poll'),{method:'POST'});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Ошибка опроса');
+    loadPulseMeters();
+  }catch(e){ alert(e.message); }
+}
+async function toggleDecommissionPulse(id, on){
+  try{
+    const r=await fetch(dUrl('/api/pulse-meters/'+id+'/decommission'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decommission:on})});
+    if(!r.ok){ const d=await r.json(); throw new Error(d.error||'Ошибка'); }
+    loadPulseMeters();
+  }catch(e){ alert(e.message); }
+}
+// ── Учёт: пауза/возобновление и установка показаний прибора (22.09.2026) ─────────────────────
+// Прибор считает импульсы всегда (остановить его нельзя), поэтому «Выкл учёт» = не опрашиваем и
+// не пишем историю. При включении обычно сразу задают стартовые показания: за время паузы прибор
+// накопил своё, и без этого в истории появился бы скачок.
+async function togglePulseCounting(id, turnOn){
+  if(turnOn){
+    if(!confirm('Включить учёт?\n\nПока учёт был выключен, прибор продолжал считать импульсы. Если нужно начать с конкретных показаний — после включения нажмите «Указать показания».')) return;
+  } else {
+    if(!confirm('Выключить учёт?\n\nОпрос и запись истории по этому счётчику прекратятся. Сам прибор продолжит считать импульсы.')) return;
+  }
+  try{
+    const r=await fetch(dUrl('/api/pulse-meters/'+id+'/counting'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:!!turnOn})});
+    if(!r.ok){ const d=await r.json(); throw new Error(d.error||'Ошибка'); }
+    loadPulseMeters();
+  }catch(e){ alert(e.message); }
+}
+async function savePulseValueToDevice(id){
+  const value = parseFloat($('pValue'+id).value);
+  if(!Number.isFinite(value) || value<0){
+    const msgEl=$('pDurMsg'+id); msgEl.style.color='var(--err)'; msgEl.textContent='Показания должны быть числом не меньше 0'; return;
+  }
+  if(!confirm('Записать в прибор показания '+value+'?\n\nДальше счёт пойдёт от этого значения.')) return;
+  await writePulseValue(id, value);
+}
+async function resetPulseValue(id){
+  if(!confirm('Сбросить накопленные показания прибора в 0?')) return;
+  await writePulseValue(id, 0);
+}
+async function writePulseValue(id, value){
+  const msgEl=$('pDurMsg'+id);
+  const clearHistory = !!($('pClearHist'+id) && $('pClearHist'+id).checked);
+  if(msgEl){ msgEl.style.color='var(--muted)'; msgEl.textContent='Записываю…'; }
+  try{
+    const r=await fetch(dUrl('/api/pulse-meters/'+id+'/set-value'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({value, clearHistory})});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Ошибка');
+    // Тест, если он идёт, считает импульсы от своей точки отсчёта — после смены показаний она
+    // больше не действительна, иначе счётчик теста покажет огромный «минус» или скачок.
+    if(pulseTest[id]) pulseTest[id]={ startValue:null, value:null, input:null, pulses:0, error:null };
+    loadPulseMeters();
+    if(setupOpenId===id) await loadPulseSetup(id);
+  }catch(e){ if(msgEl){ msgEl.style.color='var(--err)'; msgEl.textContent=e.message; } else alert(e.message); }
+}
+async function deletePulseMeter(id){
+  if(!confirm('Удалить этот счётчик импульсов? История показаний тоже будет удалена.')) return;
+  try{
+    const r=await fetch(dUrl('/api/pulse-meters/'+id),{method:'DELETE'});
+    if(!r.ok){ const d=await r.json(); throw new Error(d.error||'Ошибка'); }
+    loadPulseMeters();
   }catch(e){ alert(e.message); }
 }
 async function startScan(){

@@ -442,4 +442,56 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_project ON audit_logs(project_id, at);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action, at);
 `);
 
+// ── Счётчики импульсов «Пульсар» (22.09.2026) — первый прибор с ДРУГИМ протоколом на той же
+// RS-485 шине (см. domains/metering/pulsarProtocol.js). Отдельная таблица, а не расширение
+// meters: адресация другая (серийный номер вместо 0-239), один физический прибор может нести
+// НЕСКОЛЬКО независимых счётчиков воды (до 3 каналов на проверенной модели, протокол — до 16) —
+// поэтому строка здесь описывает КАНАЛ прибора, а не прибор целиком; один и тот же serial
+// встречается в нескольких строках с разными channel. Начинаем с одного задействованного канала
+// (просьба пользователя 22.09.2026), но схема сразу тянет любое число.
+// unit — не жёстко "вода": Пульсар с тем же протоколом ставят и на тепло/газ, пусть будет полем,
+// а не допущением.
+db.exec(`
+CREATE TABLE IF NOT EXISTS pulse_meters (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  modem_id INTEGER NOT NULL REFERENCES modems(id),
+  serial TEXT NOT NULL,
+  channel INTEGER NOT NULL,
+  label TEXT,
+  unit TEXT NOT NULL DEFAULT 'м³',
+  pulse_weight REAL,
+  location TEXT,
+  decommissioned_at INTEGER,
+  created_at INTEGER NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pulse_meters_unique ON pulse_meters(modem_id, serial, channel);
+`);
+// Вкл/выкл подсчёта (22.09.2026) — пауза учёта на время пусконаладки, отдельно от вывода из
+// эксплуатации (decommissioned_at, там прибор считается снятым насовсем). Сам ПРИБОР при этом
+// продолжает считать импульсы железно — остановить его протокол не позволяет; выключение значит
+// «не опрашивать и не писать историю», а при включении монтажник задаёт стартовые показания
+// (см. /api/pulse-meters/:id/set-value), от которых дальше идёт учёт.
+const pulseCols = db.prepare("PRAGMA table_info(pulse_meters)").all().map(c => c.name);
+if (!pulseCols.includes('counting_enabled')) {
+  db.exec('ALTER TABLE pulse_meters ADD COLUMN counting_enabled INTEGER NOT NULL DEFAULT 1');
+}
+// Показания — снимки НАКОПЛЕННОГО значения (м3), не дельты за интервал (в отличие от readings.kwh,
+// который приходит из профиля счётчика готовым интервальным значением): протокол «Пульсара»
+// команды F=0x01 отдаёт именно накопленный расход с начала эксплуатации, дельта за период —
+// это разница между двумя снимками, считается на чтении, не при записи. date/slot — та же
+// 10-минутная сетка, что у modem_readings (снимки CSQ/температуры модема), не получасовая, как у
+// readings: опрос идёт с шагом MERCURY_BUS_POLL_SEC (2 мин, общий с Меркурием), и более частая
+// сетка не искажает физический смысл (в отличие от kwh, тут нет "получасового профильного среза"
+// от самого прибора, который эта сетка обязана была бы уважать).
+db.exec(`
+CREATE TABLE IF NOT EXISTS pulse_readings (
+  pulse_meter_id INTEGER NOT NULL REFERENCES pulse_meters(id),
+  date TEXT NOT NULL,
+  slot TEXT NOT NULL,
+  value REAL,
+  PRIMARY KEY (pulse_meter_id, date, slot)
+) WITHOUT ROWID;
+CREATE INDEX IF NOT EXISTS idx_pulse_readings_month ON pulse_readings(pulse_meter_id, substr(date,1,7));
+`);
+
 module.exports = db;

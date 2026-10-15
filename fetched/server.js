@@ -23,6 +23,7 @@ const ExcelJS = require('exceljs'); // отчёт по разделу «Объе
 const { pollMercury, pollEnergy, scanBus, readSerial, readEventHistory } = require('./domains/metering/mercuryPoll.js');
 const { eventsToBitmask } = require('./domains/metering/mercuryProtocol.js');
 const { pollProfile } = require('./domains/metering/mercuryProfilePoll.js');
+const { pollPulsar, readPulsarInputTest, readPulsarChannelWeight, writePulsarChannelWeight, writePulsarValue } = require('./domains/metering/pulsarPoll.js');
 const db = require('./db.js');
 const auth = require('./auth.js');
 const state = require('./domains/device/modemState.js');
@@ -41,6 +42,8 @@ const MERCURY_POLL_SEC = 60;         // период опроса GPIO/CSQ/temp 
 // действие ("Опросить счётчик сейчас") вставало в бесконечную очередь на десятки секунд (жалоба
 // пользователя). 120с даёт реальный запас простоя.
 const MERCURY_BUS_POLL_SEC = 120;
+// Период опроса счётчиков импульсов «Пульсар» — см. комментарий у setInterval(tickAllPulsar).
+const PULSE_BUS_POLL_SEC = 30;
 const RETENTION_MONTHS = 24;         // сколько месяцев почасовок храним, старше — удаляется
 const BACKFILL_MAX_RECORDS = 24 * 31 * 48; // потолок первой догрузки истории (24 месяца с запасом)
 const POLL_MAX_RECORDS = 100;        // потолок обычного (не первого) опроса — сколько новых срезов ждать за цикл
@@ -899,6 +902,56 @@ async function tickAllMercury() {
   const rows = allMetersWithModem();
   await Promise.allSettled(rows.map(r => backgroundMercuryPollMeter({ id: r.modem_id, imei: r.modem_imei }, r)));
 }
+
+// ── Счётчики импульсов «Пульсар» (22.09.2026) — своя RS-485 шина, тот же прозрачный порт
+// Collector, поэтому опрос ОБЯЗАН идти через тот же state.serializeFor(modem.id) — коллизия и
+// мусорные ответы на общей шине с Меркурием, если этого не делать (см. живую проверку в тот же
+// день: ручные запросы в обход очереди дали 5 ложных "найденных" адресов на скане Меркурия).
+// Кэш последнего опроса — свой Map, а не state.getMeterState (та заточена под форму Меркурия:
+// cachedMercury/profilePolling/т.п., которая здесь не нужна и могла бы запутать), ключ — id
+// строки pulse_meters (отдельное пространство id от meters, коллизий по значению не бывает — оба
+// числовые PRIMARY KEY из разных таблиц, но раз уж они в одной Map, важно не путать смысл).
+const pulsarCache = new Map(); // pulseMeterId -> {online, value, ts, error}
+// counting_enabled=0 — учёт приостановлен монтажником (пусконаладка): не опрашиваем и не пишем
+// историю, но прибор остаётся в списке и его можно опросить вручную/включить обратно.
+function allPulseMetersWithModem() {
+  return db.prepare(`SELECT pm.*, mo.imei AS modem_imei
+                      FROM pulse_meters pm JOIN modems mo ON pm.modem_id = mo.id
+                     WHERE pm.decommissioned_at IS NULL AND pm.counting_enabled = 1`).all();
+}
+// Снимок НАКОПЛЕННОГО значения на 10-минутную сетку (см. db.js pulse_readings) — расход за период
+// считается на чтении (последний минус первый снимок периода), не здесь.
+function slot10(d) {
+  const bucket = Math.floor(d.getMinutes() / 10) * 10;
+  return `${String(d.getHours()).padStart(2, '0')}:${String(bucket).padStart(2, '0')}`;
+}
+function savePulseReading(pulseMeterId, value) {
+  if (value == null) return;
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10);
+  const slot = slot10(now);
+  db.prepare(`INSERT INTO pulse_readings (pulse_meter_id, date, slot, value) VALUES (?, ?, ?, ?)
+              ON CONFLICT(pulse_meter_id, date, slot) DO UPDATE SET value = excluded.value`)
+    .run(pulseMeterId, date, slot, value);
+}
+async function backgroundPulsarPollMeter(modem, pm, { priority = false } = {}) {
+  try {
+    const port = await getCollectorPort(modem.imei);
+    if (!port) throw new Error('у модема ещё нет прозрачного порта Collector');
+    const cfg = { host: COLLECTOR_HOST, port, serial: pm.serial, channels: [pm.channel] };
+    const r = await state.serializeFor(modem.id, () => pollPulsar(cfg), { priority });
+    const value = r.values ? r.values[pm.channel] : null;
+    pulsarCache.set(pm.id, { online: true, value, ts: Date.now(), error: null });
+    savePulseReading(pm.id, value);
+  } catch (e) {
+    const prev = pulsarCache.get(pm.id);
+    pulsarCache.set(pm.id, { online: false, value: prev ? prev.value : null, ts: Date.now(), error: e.message });
+  }
+}
+async function tickAllPulsar() {
+  const rows = allPulseMetersWithModem();
+  await Promise.allSettled(rows.map(r => backgroundPulsarPollMeter({ id: r.modem_id, imei: r.modem_imei }, r)));
+}
 async function tickAllProfiles() {
   const rows = allMetersWithModem();
   await Promise.allSettled(rows.map(r => backgroundMercuryProfilePollMeter({ id: r.modem_id, imei: r.modem_imei }, r)));
@@ -911,6 +964,14 @@ setInterval(tickAllModems, MERCURY_POLL_SEC * 1000);
 setTimeout(tickAllModems, 1500);
 setInterval(tickAllMercury, MERCURY_BUS_POLL_SEC * 1000);
 setTimeout(tickAllMercury, 5000);
+// Чаще Меркурия (30с против 120с) и это осознанно: опрос «Пульсара» — ОДНА короткая команда
+// (~0.3-0.5с на шине) против девяти у Меркурия, поэтому даже вчетверо более частый тик добавляет
+// считанные проценты занятости RS-485. Причина: при 120с человек, замкнувший клеммы, до двух
+// минут видит неизменные показания и считает, что импульсы не считаются (жалоба 22.09.2026) —
+// хотя прибор их считал, просто панель ещё не спросила. Сдвиг старта (7с) — чтобы первый тик не
+// совпал с первым тиком Меркурия.
+setInterval(tickAllPulsar, PULSE_BUS_POLL_SEC * 1000);
+setTimeout(tickAllPulsar, 7000);
 setInterval(tickAllProfiles, 10 * 60 * 1000);
 setTimeout(tickAllProfiles, 20000);
 setInterval(rotateReadings, 24 * 3600 * 1000);
@@ -1459,6 +1520,212 @@ app.delete('/api/meters/:id', (req, res) => {
   backfillJobs.delete(id);
   eventHistoryJobs.delete(id);
   res.json({ ok: true });
+});
+
+// ── Счётчики импульсов «Пульсар» (22.09.2026) — отдельный подраздел «Приборы учёта» ──────────
+// Адресация не сканируется (в отличие от Меркурия выше): сетевой адрес = серийный номер прибора
+// с этикетки, известен заранее, см. domains/metering/pulsarProtocol.js.
+app.get('/api/pulse-meters', (req, res) => {
+  if (!req.modem) return res.json({ meters: [] });
+  const rows = db.prepare(`SELECT id, serial, channel, label, unit, pulse_weight, location, decommissioned_at, counting_enabled
+                            FROM pulse_meters WHERE modem_id = ? ORDER BY serial, channel`).all(req.modem.id);
+  res.json({
+    meters: rows.map(m => ({
+      ...m,
+      ...(pulsarCache.get(m.id) || { online: false, value: null, ts: null, error: null }),
+    })),
+  });
+});
+app.post('/api/pulse-meters', (req, res) => {
+  if (!req.modem) return res.status(400).json({ error: 'к проекту не привязан модем' });
+  const b = req.body || {};
+  const serial = String(b.serial || '').replace(/\D/g, '');
+  if (!serial) return res.status(400).json({ error: 'укажите серийный номер прибора (с этикетки)' });
+  const channel = parseInt(b.channel, 10);
+  if (!Number.isInteger(channel) || channel < 1 || channel > 16) {
+    return res.status(400).json({ error: 'номер канала должен быть от 1 до 16' });
+  }
+  const label = String(b.label || `Вода, канал ${channel}`).slice(0, 60);
+  const unit = String(b.unit || 'м³').trim().slice(0, 10) || 'м³';
+  const pulseWeight = b.pulseWeight !== undefined && b.pulseWeight !== '' && Number.isFinite(parseFloat(b.pulseWeight))
+    ? parseFloat(b.pulseWeight) : null;
+  const location = typeof b.location === 'string' && b.location.trim() ? b.location.trim().slice(0, 120) : null;
+  if (db.prepare('SELECT id FROM pulse_meters WHERE modem_id = ? AND serial = ? AND channel = ?').get(req.modem.id, serial, channel)) {
+    return res.status(409).json({ error: 'этот канал этого прибора уже добавлен' });
+  }
+  const info = db.prepare(`INSERT INTO pulse_meters (modem_id, serial, channel, label, unit, pulse_weight, location, created_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(req.modem.id, serial, channel, label, unit, pulseWeight, location, Date.now());
+  const id = info.lastInsertRowid;
+  res.json({ ok: true, meter: { id, serial, channel, label, unit, pulse_weight: pulseWeight, location, decommissioned_at: null, online: false, value: null } });
+  // Первое чтение — сразу, не дожидаясь ближайшего фонового тика (до 2 минут ожидания иначе).
+  const modem = req.modem;
+  backgroundPulsarPollMeter(modem, { id, serial, channel }, { priority: true }).catch(() => {});
+});
+app.patch('/api/pulse-meters/:id', (req, res) => {
+  if (!req.modem) return res.status(404).json({ error: 'счётчик не найден' });
+  const id = parseInt(req.params.id, 10);
+  const pm = db.prepare('SELECT * FROM pulse_meters WHERE id = ?').get(id);
+  if (!pm || pm.modem_id !== req.modem.id) return res.status(404).json({ error: 'счётчик не найден' });
+  const b = req.body || {};
+  const fields = [];
+  const values = [];
+  if (typeof b.label === 'string') { fields.push('label = ?'); values.push(b.label.trim().slice(0, 60) || null); }
+  if (typeof b.location === 'string') { fields.push('location = ?'); values.push(b.location.trim().slice(0, 120) || null); }
+  if (typeof b.unit === 'string' && b.unit.trim()) { fields.push('unit = ?'); values.push(b.unit.trim().slice(0, 10)); }
+  if (b.pulseWeight !== undefined) {
+    const w = parseFloat(b.pulseWeight);
+    fields.push('pulse_weight = ?'); values.push(b.pulseWeight === '' || !Number.isFinite(w) ? null : w);
+  }
+  if (!fields.length) return res.status(400).json({ error: 'нечего сохранять' });
+  values.push(id);
+  db.prepare(`UPDATE pulse_meters SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+  res.json({ ok: true });
+});
+app.post('/api/pulse-meters/:id/decommission', (req, res) => {
+  if (!req.modem) return res.status(404).json({ error: 'счётчик не найден' });
+  const id = parseInt(req.params.id, 10);
+  const pm = db.prepare('SELECT * FROM pulse_meters WHERE id = ?').get(id);
+  if (!pm || pm.modem_id !== req.modem.id) return res.status(404).json({ error: 'счётчик не найден' });
+  const on = !!(req.body || {}).decommission;
+  const ts = on ? Date.now() : null;
+  db.prepare('UPDATE pulse_meters SET decommissioned_at = ? WHERE id = ?').run(ts, id);
+  res.json({ ok: true, decommissioned_at: ts });
+});
+app.delete('/api/pulse-meters/:id', (req, res) => {
+  if (!req.modem) return res.status(404).json({ error: 'счётчик не найден' });
+  const id = parseInt(req.params.id, 10);
+  const pm = db.prepare('SELECT * FROM pulse_meters WHERE id = ?').get(id);
+  if (!pm || pm.modem_id !== req.modem.id) return res.status(404).json({ error: 'счётчик не найден' });
+  db.transaction(() => {
+    db.prepare('DELETE FROM pulse_readings WHERE pulse_meter_id = ?').run(id);
+    db.prepare('DELETE FROM pulse_meters WHERE id = ?').run(id);
+  })();
+  logAudit(req, 'pulse_meter.delete', `pulse_meter:${id}`, `serial=${pm.serial}, channel=${pm.channel}, label=${pm.label}`);
+  pulsarCache.delete(id);
+  res.json({ ok: true });
+});
+app.post('/api/pulse-meters/:id/poll', async (req, res) => {
+  if (!req.modem) return res.status(404).json({ error: 'счётчик не найден' });
+  const id = parseInt(req.params.id, 10);
+  const pm = db.prepare('SELECT * FROM pulse_meters WHERE id = ?').get(id);
+  if (!pm || pm.modem_id !== req.modem.id) return res.status(404).json({ error: 'счётчик не найден' });
+  await backgroundPulsarPollMeter(req.modem, pm, { priority: true });
+  const c = pulsarCache.get(id);
+  if (c && c.error) return res.status(502).json({ error: c.error });
+  res.json({ ok: true, ...c });
+});
+
+// Живой тест входа (22.09.2026) — состояние клемм (замкнут/разомкнут) + текущее показание, чтобы
+// при перемыкании клемм руками было видно и контакт, и как из него набегают импульсы. Отдельный
+// (не фоновый) запрос по требованию UI, с priority — чтобы не ждать очередь фонового круга.
+app.get('/api/pulse-meters/:id/input-test', async (req, res) => {
+  if (!req.modem) return res.status(404).json({ error: 'счётчик не найден' });
+  const id = parseInt(req.params.id, 10);
+  const pm = db.prepare('SELECT * FROM pulse_meters WHERE id = ?').get(id);
+  if (!pm || pm.modem_id !== req.modem.id) return res.status(404).json({ error: 'счётчик не найден' });
+  try {
+    const port = await getCollectorPort(req.modem.imei);
+    if (!port) throw new Error('у модема ещё нет прозрачного порта Collector');
+    const cfg = { host: COLLECTOR_HOST, port, serial: pm.serial, channels: [pm.channel] };
+    const r = await state.serializeFor(req.modem.id, () => readPulsarInputTest(cfg), { priority: true });
+    const value = r.values ? r.values[pm.channel] : null;
+    // Показание, полученное в тесте, — такой же валидный снимок, как из фонового опроса: пишем
+    // его в историю и в кэш, иначе «Опрошен N назад» в карточке отставал бы от теста.
+    if (value != null) {
+      pulsarCache.set(id, { online: true, value, ts: Date.now(), error: null });
+      savePulseReading(id, value);
+    }
+    res.json({ ok: true, input: r.inputs ? r.inputs[pm.channel] : null, value, unit: pm.unit, pulseWeight: pm.pulse_weight });
+  } catch (e) {
+    res.status(502).json({ error: e.message });
+  }
+});
+
+// Установка показаний прибора (22.09.2026): «сбросить накопленное» (value=0) и «указать текущие
+// показания» при монтаже — одна и та же команда F=0x03 с разными значениями. clearHistory чистит
+// снимки в pulse_readings: после сброса старые строки с прежней (обычно большей) величиной дают
+// на графике отрицательный расход, поэтому их убирают вместе со сбросом, а не оставляют «как есть».
+app.post('/api/pulse-meters/:id/set-value', async (req, res) => {
+  if (!req.modem) return res.status(404).json({ error: 'счётчик не найден' });
+  const id = parseInt(req.params.id, 10);
+  const pm = db.prepare('SELECT * FROM pulse_meters WHERE id = ?').get(id);
+  if (!pm || pm.modem_id !== req.modem.id) return res.status(404).json({ error: 'счётчик не найден' });
+  const value = parseFloat((req.body || {}).value);
+  if (!Number.isFinite(value) || value < 0) {
+    return res.status(400).json({ error: 'показания должны быть числом не меньше 0' });
+  }
+  try {
+    const port = await getCollectorPort(req.modem.imei);
+    if (!port) throw new Error('у модема ещё нет прозрачного порта Collector');
+    const cfg = { host: COLLECTOR_HOST, port, serial: pm.serial, channel: pm.channel };
+    const actual = await state.serializeFor(req.modem.id, () => writePulsarValue(cfg, value), { priority: true });
+    if ((req.body || {}).clearHistory) {
+      db.prepare('DELETE FROM pulse_readings WHERE pulse_meter_id = ?').run(id);
+    }
+    pulsarCache.set(id, { online: true, value: actual, ts: Date.now(), error: null });
+    if (actual != null) savePulseReading(id, actual);
+    res.json({ ok: true, value: actual });
+  } catch (e) {
+    res.status(502).json({ error: e.message });
+  }
+});
+
+// Пауза/возобновление учёта (22.09.2026) — только на нашей стороне: остановить счёт импульсов в
+// самом приборе протокол не позволяет (он считает всегда), поэтому «выкл» = не опрашивать и не
+// писать историю. Поэтому же при включении обычно сразу задают стартовые показания (set-value):
+// за время паузы прибор продолжал накапливать, и без этого учёт возобновился бы со скачком.
+app.post('/api/pulse-meters/:id/counting', (req, res) => {
+  if (!req.modem) return res.status(404).json({ error: 'счётчик не найден' });
+  const id = parseInt(req.params.id, 10);
+  const pm = db.prepare('SELECT * FROM pulse_meters WHERE id = ?').get(id);
+  if (!pm || pm.modem_id !== req.modem.id) return res.status(404).json({ error: 'счётчик не найден' });
+  const enabled = (req.body || {}).enabled ? 1 : 0;
+  db.prepare('UPDATE pulse_meters SET counting_enabled = ? WHERE id = ?').run(enabled, id);
+  res.json({ ok: true, counting_enabled: enabled });
+});
+
+// Сверка веса импульса: что задано В ПРИБОРЕ против того, что записано в карточке счётчика
+// (22.09.2026). Расхождение = неверные показания у клиента в кратное число раз, поэтому это
+// первое, что стоит проверять при пусконаладке. Через ту же очередь serializeFor(modem.id).
+app.get('/api/pulse-meters/:id/debug', async (req, res) => {
+  if (!req.modem) return res.status(404).json({ error: 'счётчик не найден' });
+  const id = parseInt(req.params.id, 10);
+  const pm = db.prepare('SELECT * FROM pulse_meters WHERE id = ?').get(id);
+  if (!pm || pm.modem_id !== req.modem.id) return res.status(404).json({ error: 'счётчик не найден' });
+  try {
+    const port = await getCollectorPort(req.modem.imei);
+    if (!port) throw new Error('у модема ещё нет прозрачного порта Collector');
+    const cfg = { host: COLLECTOR_HOST, port, serial: pm.serial, channel: pm.channel };
+    const deviceWeight = await state.serializeFor(req.modem.id, () => readPulsarChannelWeight(cfg), { priority: true });
+    res.json({ ok: true, deviceWeight, appWeight: pm.pulse_weight, unit: pm.unit, channel: pm.channel });
+  } catch (e) {
+    res.status(502).json({ error: e.message });
+  }
+});
+// Запись веса импульса В ПРИБОР — операция, искажающая все последующие показания при ошибке
+// (живой инцидент 22.09.2026: 10 вместо 0.01 завысило расход в 1000 раз), поэтому: явный
+// диапазон, подтверждение на клиенте и синхронная запись того же значения в карточку — чтобы
+// прибор и приложение не разъехались снова.
+app.post('/api/pulse-meters/:id/debug', async (req, res) => {
+  if (!req.modem) return res.status(404).json({ error: 'счётчик не найден' });
+  const id = parseInt(req.params.id, 10);
+  const pm = db.prepare('SELECT * FROM pulse_meters WHERE id = ?').get(id);
+  if (!pm || pm.modem_id !== req.modem.id) return res.status(404).json({ error: 'счётчик не найден' });
+  const weight = parseFloat((req.body || {}).weight);
+  if (!Number.isFinite(weight) || weight <= 0 || weight > 1000) {
+    return res.status(400).json({ error: 'вес импульса должен быть больше 0 и не больше 1000' });
+  }
+  try {
+    const port = await getCollectorPort(req.modem.imei);
+    if (!port) throw new Error('у модема ещё нет прозрачного порта Collector');
+    const cfg = { host: COLLECTOR_HOST, port, serial: pm.serial, channel: pm.channel };
+    await state.serializeFor(req.modem.id, () => writePulsarChannelWeight(cfg, weight), { priority: true });
+    db.prepare('UPDATE pulse_meters SET pulse_weight = ? WHERE id = ?').run(weight, id);
+    res.json({ ok: true, weight });
+  } catch (e) {
+    res.status(502).json({ error: e.message });
+  }
 });
 
 // Сканирование шины RS-485 на предмет подключённых счётчиков (ping по диапазону адресов).
