@@ -155,8 +155,13 @@
   .side-btn svg { width:16px; height:16px; flex:none; color:var(--muted); }
   .side-btn > span:first-of-type { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .side-btn:hover:not(.active) { background:var(--card2); }
+  /* Метка активного пункта — отдельная прямая полоса слева (::before), а не inset-тень: тень
+     повторяла скругление кнопки и читалась как банальная скруглённая рамка (просьба 15.10.2026). */
+  .side-btn { position:relative; }
   .side-btn.active { background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--focus-ring);
-    font-weight:600; box-shadow:inset 2px 0 0 var(--accent); }
+    font-weight:600; box-shadow:none; }
+  .side-btn.active::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:var(--accent); border-radius:0 !important; }
   .side-btn.active svg { color:var(--accent); }
   .side-btn:active:not(:disabled) { transform:none; filter:none; }
   .side-foot { margin-top:auto; display:flex; flex-direction:column; gap:10px; padding:10px 4px 0;
