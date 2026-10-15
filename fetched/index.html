@@ -1652,7 +1652,7 @@
               <div><span class="mc-cap">Сейчас</span><b id="mcEnd">—</b></div>
               <div class="mc-cons"><span class="mc-cap" id="mcConsCap">Расход за месяц</span><b id="mcCons">—</b></div>
             </div>
-            <div class="mc-note">Показания — по счётчику (кВт·ч, без учёта ТТ); расход — с учётом коэффициента ТТ.</div>
+            <div class="mc-note" id="mcCtNote"></div>
             <div class="mc-cap-row"><span class="mc-cap">Сеть сейчас</span><span class="mc-meta" id="mcPolled"></span></div>
             <div class="mc-phases">
               <span></span><span>A</span><span>B</span><span>C</span>
@@ -1705,7 +1705,7 @@
               <span class="key" title="Профиль счётчика за этот час не собран — значение восстановлено из разности накопленной энергии. Сумма верна, привязка к часу грубее."><i class="est">0,08</i> расчётное</span>
               <span class="key" title="Интервал накоплен не полностью: у профиля это флаг самого счётчика, у расчётного значения — растянувшийся интервал опроса."><i class="inc">0,08</i> неполный срез</span>
               <span style="margin-left:auto" id="profileMeta"></span></div>
-            <div class="mc-note">Значения — по счётчику, кВт·ч за час, без учёта коэффициента ТТ.</div>
+            <div class="mc-note">кВт·ч за час, с учётом коэффициента ТТ прибора.</div>
           </div>
 
           <!-- Энергия по тарифам (бывший «АСКУЭ → Накопленная энергия») -->
@@ -1716,7 +1716,7 @@
                 <tbody id="energyTbody"></tbody>
               </table>
             </div>
-            <div class="mc-note">Накоплено с начала эксплуатации счётчика, не сбрасывается. «+» — потреблено из сети, «−» — отдано в сеть. Текущий тариф прибора — во вкладке «Паспорт».</div>
+            <div class="mc-note">Накоплено с начала эксплуатации счётчика, не сбрасывается; с учётом коэффициента ТТ прибора. «+» — потреблено из сети, «−» — отдано в сеть. Текущий тариф прибора — во вкладке «Паспорт».</div>
           </div>
 
           <!-- Журнал событий -->
@@ -2299,6 +2299,11 @@ function meterNeedsAttention(m){
   const due=objDueLevel(m.verification_due), o=meterOverview[m.id];
   return (due && due.key==='over') || meterLink(m).key==='off' || !!(o && o.alarm);
 }
+// Показания, почасовка и накопленная энергия электросчётчика в «Приборах учёта» — сразу с учётом
+// коэффициента ТТ (решение владельца 15.10.2026): прибор за трансформаторами тока видит долю
+// реальной энергии, человеку нужны настоящие кВт·ч. Сервер отдаёт сырые значения счётчика.
+function meterCt(m){ return (m && m.ct_ratio) || 1; }
+function ctMul(v, m){ return v==null ? null : v*meterCt(m); }
 function fmtFixed(v,d){ return v==null?'—':v.toLocaleString('ru-RU',{minimumFractionDigits:d,maximumFractionDigits:d}); }
 function renderMeterSection(){
   $('resCountPower').textContent=allMeters.length;
@@ -2370,7 +2375,7 @@ function renderMeterTrigger(){
     `<span class="mt-trig-main"><span class="mt-trig-cap">Прибор учёта · ${allMeters.length} в списке</span>`+
     `<b>${esc(meterTitle(m))}</b>`+
     `<small>${esc([m.model||'Меркурий', m.serial_number?'№'+m.serial_number:null, 'адрес '+m.addr, 'ТТ ×'+(m.ct_ratio||1)].filter(Boolean).join(' · '))} · <span class="mt-lnk ${link.key}">${link.text}</span></small></span>`+
-    `<span class="mt-trig-kv hide-sm"><span class="mt-trig-cap">Показание</span><b>${fmtFixed(o.endReading,3)}</b></span>`+
+    `<span class="mt-trig-kv hide-sm"><span class="mt-trig-cap">Показание${meterCt(m)!==1?' ×'+meterCt(m):''}</span><b>${fmtFixed(ctMul(o.endReading,m),1)}</b></span>`+
     `<span class="mt-trig-kv"><span class="mt-trig-cap">Расход ${monTxt}</span><b>${fmtFixed(o.consumptionKwh,1)}</b></span>`+
     `<span class="mt-trig-kv hide-sm"><span class="mt-trig-cap">Поверка</span>${dueHtml}</span>`+
     `<span class="mt-trig-chev">${DROP_CHEV}</span>`;
@@ -2395,7 +2400,7 @@ function renderMeterTable(){
       .some(s=>s && String(s).toLowerCase().includes(q));
   });
   const head=`<div class="mt-row mt-head"><span></span><span>Помещение</span><span>Модель · №</span><span>Адрес</span>`+
-    `<span class="num">Показание</span><span class="num">Расход ${meterOverviewToday?MONTH_NAMES_SHORT[parseInt(meterOverviewToday.slice(5,7),10)-1]+'.':'мес.'}</span><span>Поверка</span></div>`;
+    `<span class="num">Показание ×ТТ</span><span class="num">Расход ${meterOverviewToday?MONTH_NAMES_SHORT[parseInt(meterOverviewToday.slice(5,7),10)-1]+'.':'мес.'}</span><span>Поверка</span></div>`;
   if(!list.length){
     $('mtTable').innerHTML=head+`<div class="mt-nothing">${q?'Ничего не найдено':'В этом фильтре приборов нет'}</div>`;
     return;
@@ -2422,7 +2427,7 @@ function meterRowHtml(m){
     `<span class="mt-main"><b>${esc(meterTitle(m))}</b>${sub?`<small>${esc(sub)}</small>`:''}${o.alarm?'<small class="mt-alarm">⚠ тревога счётчика</small>':''}</span>`+
     `<span class="mt-model">${esc((m.model||'Меркурий').replace('Меркурий','Мерк.'))}<small>${esc(m.serial_number||'—')}</small></span>`+
     `<span class="mt-addr">${m.addr}</span>`+
-    `<span class="num">${fmtFixed(o.endReading,3)}</span>`+
+    `<span class="num">${fmtFixed(ctMul(o.endReading,m),1)}</span>`+
     `<span class="num strong">${fmtFixed(o.consumptionKwh,1)}</span>`+
     dueTxt+`</button>`;
 }
@@ -2444,8 +2449,11 @@ function renderMeterCard(){
   } else warn.style.display='none';
   const ct=m.ct_ratio||1;
   $('mcStartCap').textContent=meterOverviewToday?('На 01.'+meterOverviewToday.slice(5,7)):'На начало месяца';
-  $('mcStart').textContent=fmtFixed(o.startReading,3);
-  $('mcEnd').textContent=fmtFixed(o.endReading,3);
+  $('mcStart').textContent=fmtFixed(ctMul(o.startReading,m),1);
+  $('mcEnd').textContent=fmtFixed(ctMul(o.endReading,m),1);
+  $('mcCtNote').textContent = ct!==1
+    ? `Все значения — с учётом коэффициента ТТ ×${ct}: показания, расход, почасовка и накопленная энергия.`
+    : 'Прибор без трансформаторов тока (коэффициент 1).';
   $('mcConsCap').textContent='Расход за месяц'+(ct!==1?' ×'+ct:'');
   $('mcCons').textContent=o.consumptionKwh==null?'—':fmtFixed(o.consumptionKwh,1)+' кВт·ч';
   if(pfMeterId!==m.id) fillPassport(m);
@@ -2921,7 +2929,8 @@ async function pollEventHistory(){
 }
 function renderEnergy(e){
   const tbody=$('energyTbody'); if(!tbody) return;
-  const f=x=>x==null?'—':x.toFixed(3);
+  const cur=allMeters.find(m=>m.id===currentMeterId);
+  const f=x=>x==null?'—':ctMul(x,cur).toFixed(meterCt(cur)!==1?1:3);
   const rows=[['Сумма',e&&e.sum,true],['T1',e&&e.t1],['T2',e&&e.t2],['T3',e&&e.t3],['T4',e&&e.t4]];
   tbody.innerHTML=rows.map(([label,v,bold])=>
     `<tr style="${bold?'font-weight:700':''}">`+
@@ -2958,7 +2967,8 @@ function buildYearMonthPickerHtml(availableMonths, current, browseYear, selectFn
 function renderProfile(d){
   const table=$('profileTable'); if(!table) return;
   const hours=[...Array(24).keys()];
-  let vals=[]; for(const day of d.dates) for(const h of (d.hourly[day]||[])) if(h&&h.kwh!=null) vals.push(h.kwh);
+  const ct=meterCt(allMeters.find(m=>m.id===currentMeterId));
+  let vals=[]; for(const day of d.dates) for(const h of (d.hourly[day]||[])) if(h&&h.kwh!=null) vals.push(h.kwh*ct);
   const max=vals.length?Math.max(...vals):0;
   // color-mix(--card2 → --heat-end) вместо ручной RGB-интерполяции — сама заливка живо следует
   // за темой (в тёмной теме конечный цвет ярко-синий, как раньше; в светлой — акцентный синий).
@@ -2979,7 +2989,8 @@ function renderProfile(d){
           if(!h||h.kwh==null) return '<td class="cell empty">·</td>';
           const cls=(h.incomplete?' incomplete':'')+(h.estimated?' estimated':'');
           const note=(h.estimated?' (расчётное, не из профиля счётчика)':'')+(h.incomplete?' (неполный срез)':'');
-          return `<td class="cell${cls}" style="${bg(h.kwh)}" title="${h.kwh} кВт·ч${note}">${h.kwh.toFixed(2)}</td>`;
+          const v=h.kwh*ct;
+          return `<td class="cell${cls}" style="${bg(v)}" title="${+v.toFixed(3)} кВт·ч${ct!==1?' (счётчик '+h.kwh+' ×'+ct+')':''}${note}">${v.toFixed(ct!==1?1:2)}</td>`;
         }).join('')+'</tr>';
     }
   }
