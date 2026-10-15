@@ -134,7 +134,28 @@ function daemonCmd(cmdLine, timeoutMs = 15000) {
     }, timeoutMs);
   });
 }
-async function triggerSend() { await waitDaemonReady(); return daemonCmd('TRIGGER'); }
+// Сторож демона: если служба закрыла его сессию на 5010, сам GpioDaemon не завершается — его
+// heartbeat глотает ошибки, процесс жив без сокета, и каждый TRIGGER отвечает ERR. Перезапуск в
+// on('exit') тогда не срабатывает никогда, команды копятся в очереди Collector неотправленными
+// (14.10.2026 так простояли ~21 ч: "Модем не отвечает" при живых счётчиках). Несколько отказов
+// подряд — убиваем демон, штатный on('exit') поднимет его с новой сессией.
+let daemonFails = 0;
+const DAEMON_MAX_FAILS = 3;
+async function triggerSend() {
+  await waitDaemonReady();
+  try {
+    await daemonCmd('TRIGGER');
+    daemonFails = 0;
+  } catch (e) {
+    if (++daemonFails >= DAEMON_MAX_FAILS && daemon) {
+      console.error(`⚠️ Демон-триггер: ${daemonFails} отказа подряд (${e.message}) — перезапуск`);
+      daemonFails = 0;
+      daemonReady = false;
+      daemon.kill();
+    }
+    throw e;
+  }
+}
 
 // Записать настройки модема (REMOTESETTINGS). Формат payload: imei=pass@@@descr@@@0@@@cmd%%%OK^^^...
 // ВАЖНО: разделитель imei/пароль — «=», НЕ «;» (см. память irz-asuno-schedule).
