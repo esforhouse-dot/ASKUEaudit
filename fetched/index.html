@@ -1246,16 +1246,30 @@
   .drawer-progress { font-size:12px; color:var(--muted); }
   #scanCandidates .kv { margin:0; padding:6px 0; }
   /* Широкий редактор поля строки «Объектов» */
-  .obj-input.popped { border-style:solid; }
-  .obj-pop { display:none; position:fixed; z-index:60; flex-direction:column; gap:6px; padding:10px 12px;
-    background:var(--card); border:1px solid var(--accent); box-shadow:var(--pop-shadow); }
+  .obj-input.popped { border:1.5px solid var(--accent); background:var(--card); }
+  .obj-pop { display:none; position:fixed; z-index:60; flex-direction:column; gap:8px; padding:12px 14px 10px;
+    background:var(--card); border:1px solid var(--line);
+    box-shadow:0 14px 34px rgba(17,19,21,.14), 0 2px 6px rgba(17,19,21,.07); }
+  html[data-theme="dark"] .obj-pop { box-shadow:0 14px 34px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.3); }
   .obj-pop.open { display:flex; }
-  .obj-pop-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; font-size:12px; }
-  .obj-pop-head span { color:var(--muted); font-size:11px; }
-  .obj-pop textarea { width:100%; min-height:76px; resize:vertical; padding:8px 10px; border:1px solid var(--line);
-    background:var(--card2); color:var(--tx); font:14px/1.45 var(--font-body); }
-  .obj-pop textarea:focus-visible { outline:2px solid var(--focus-ring); outline-offset:1px; }
-  .obj-pop-foot { font-size:11px; color:var(--muted); }
+  /* Уголок-указатель на редактируемое поле: квадрат, повёрнутый на 45°, с рамкой панели с двух сторон. */
+  .obj-pop::before { content:''; position:absolute; top:-6px; left:var(--caret-x,20px); width:10px; height:10px;
+    background:var(--card); border-left:1px solid var(--line); border-top:1px solid var(--line);
+    transform:rotate(45deg); border-radius:0 !important; }
+  .obj-pop.above::before { top:auto; bottom:-6px; border-left:none; border-top:none;
+    border-right:1px solid var(--line); border-bottom:1px solid var(--line); }
+  .obj-pop-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+  .obj-pop-head b { font-size:12px; font-weight:600; letter-spacing:.02em; }
+  .obj-pop-head span { color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; }
+  .obj-pop textarea { width:100%; min-height:84px; resize:vertical; padding:9px 11px; border:1px solid var(--line);
+    background:var(--card); color:var(--tx); font:14px/1.5 var(--font-body);
+    transition:border-color 120ms ease, box-shadow 120ms ease; }
+  .obj-pop textarea:focus, .obj-pop textarea:focus-visible { outline:none; border-color:var(--accent);
+    box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent); }
+  .obj-pop-foot { display:flex; flex-wrap:wrap; gap:4px 12px; font-size:11px; color:var(--muted); }
+  .obj-pop-foot kbd { display:inline-block; min-width:16px; padding:0 5px; margin-right:3px; text-align:center;
+    font:600 10px/16px var(--font-body); color:var(--tx); background:var(--card2); border:1px solid var(--line);
+    border-bottom-width:2px; }
   /* Телефон: в строке остаётся главное — помещение, расход, поверка (у воды — показание и
      состояние); модель, адрес и показание есть в карточке прибора. Без горизонтальной прокрутки. */
   @media (max-width:640px) {
@@ -2140,7 +2154,7 @@
 <div class="obj-pop" id="objPop" role="dialog" aria-labelledby="objPopLabel">
   <div class="obj-pop-head"><b id="objPopLabel"></b><span id="objPopCount"></span></div>
   <textarea id="objPopText" rows="3" maxlength="120" oninput="objPopInput()" onkeydown="objPopKey(event)" onblur="objPopBlur()" aria-labelledby="objPopLabel"></textarea>
-  <div class="obj-pop-foot">Enter — сохранить строку · Esc — отмена · Tab — следующее поле</div>
+  <div class="obj-pop-foot"><span><kbd>Enter</kbd> сохранить</span><span><kbd>Esc</kbd> отмена</span><span><kbd>Tab</kbd> следующее поле</span></div>
 </div>
 <div class="drawer-scrim" id="addDrawerScrim" onclick="closeAddDrawer()" aria-hidden="true"></div>
 <div class="drawer" id="addDrawer" role="dialog" aria-modal="true" aria-labelledby="addDrawerTitle">
@@ -3712,11 +3726,15 @@ function objOpenPop(inp){
 function objPlacePop(){
   const inp=objPopTarget(), pop=$('objPop');
   if(!inp || !inp.isConnected){ objClosePop(); return; }
-  const r=inp.getBoundingClientRect(), w=Math.min(380, window.innerWidth-16);
+  const r=inp.getBoundingClientRect(), w=Math.min(360, window.innerWidth-16);
   pop.style.width=w+'px';
-  pop.style.left=Math.min(Math.max(8, r.left), window.innerWidth-w-8)+'px';
-  let top=r.bottom+6; const h=pop.offsetHeight;
-  if(top+h>window.innerHeight-8) top=Math.max(8, r.top-h-6);
+  const left=Math.min(Math.max(8, r.left-12), window.innerWidth-w-8);
+  pop.style.left=left+'px';
+  // Уголок смотрит на середину поля (но не ближе 14px к краю панели).
+  pop.style.setProperty('--caret-x', Math.max(14, Math.min(w-24, r.left+Math.min(r.width,120)/2-left-5))+'px');
+  const h=pop.offsetHeight; let top=r.bottom+10, above=false;
+  if(top+h>window.innerHeight-8){ top=Math.max(8, r.top-h-10); above=true; }
+  pop.classList.toggle('above', above);
   pop.style.top=top+'px';
 }
 function objPopCount(){ $('objPopCount').textContent=$('objPopText').value.length+' / 120'; }
@@ -3728,7 +3746,7 @@ function objPopKey(ev){
     ev.preventDefault();
     const all=[...document.querySelectorAll('#objTable .obj-input')], i=all.indexOf(objPopTarget());
     const next=all[(i+(ev.shiftKey?-1:1)+all.length)%all.length];
-    objClosePop(); if(next) next.focus();
+    objClosePop(); if(next){ next.focus(); objOpenPop(next); }
   }
 }
 function objPopBlur(){ setTimeout(()=>{ if(document.activeElement!==$('objPopText')) objClosePop(); },150); }
@@ -3937,7 +3955,7 @@ function renderObjTable(){
   const body=rows.map((r,idx)=>{
     const editing=isMaster && objEditingId===r.meterId;
     const editCell=(val,inputId)=>editing
-      ? `<input class="obj-input" id="${inputId}" value="${esc(val||'')}" maxlength="120" onfocus="objOpenPop(this)" onkeydown="objInputKey(event,${r.meterId})">`
+      ? `<input class="obj-input" id="${inputId}" value="${esc(val||'')}" maxlength="120" onclick="objOpenPop(this)" onkeydown="objInputKey(event,${r.meterId})">`
       : (val?esc(val):'—');
     const actions=!isMaster ? '' : editing
       ? `<td><div class="obj-row-actions">
