@@ -1245,6 +1245,17 @@
   .drawer-box > button { align-self:flex-start; }
   .drawer-progress { font-size:12px; color:var(--muted); }
   #scanCandidates .kv { margin:0; padding:6px 0; }
+  /* Широкий редактор поля строки «Объектов» */
+  .obj-input.popped { border-style:solid; }
+  .obj-pop { display:none; position:fixed; z-index:60; flex-direction:column; gap:6px; padding:10px 12px;
+    background:var(--card); border:1px solid var(--accent); box-shadow:var(--pop-shadow); }
+  .obj-pop.open { display:flex; }
+  .obj-pop-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; font-size:12px; }
+  .obj-pop-head span { color:var(--muted); font-size:11px; }
+  .obj-pop textarea { width:100%; min-height:76px; resize:vertical; padding:8px 10px; border:1px solid var(--line);
+    background:var(--card2); color:var(--tx); font:14px/1.45 var(--font-body); }
+  .obj-pop textarea:focus-visible { outline:2px solid var(--focus-ring); outline-offset:1px; }
+  .obj-pop-foot { font-size:11px; color:var(--muted); }
   /* Телефон: в строке остаётся главное — помещение, расход, поверка (у воды — показание и
      состояние); модель, адрес и показание есть в карточке прибора. Без горизонтальной прокрутки. */
   @media (max-width:640px) {
@@ -2125,6 +2136,12 @@
 <!-- ── Панель «Добавить прибор» (редизайн, этап 3) — выезжает справа поверх раздела.
      «Меркурий»: поиск на шине RS-485 (перенесён сюда из раздела «Модем») или добавление по
      известному адресу. «Пульсар»: адрес на шине — серийный номер с этикетки, сканировать не нужно. -->
+<!-- Широкий редактор поля строки «Объектов» (см. objOpenPop) -->
+<div class="obj-pop" id="objPop" role="dialog" aria-labelledby="objPopLabel">
+  <div class="obj-pop-head"><b id="objPopLabel"></b><span id="objPopCount"></span></div>
+  <textarea id="objPopText" rows="3" maxlength="120" oninput="objPopInput()" onkeydown="objPopKey(event)" onblur="objPopBlur()" aria-labelledby="objPopLabel"></textarea>
+  <div class="obj-pop-foot">Enter — сохранить строку · Esc — отмена · Tab — следующее поле</div>
+</div>
 <div class="drawer-scrim" id="addDrawerScrim" onclick="closeAddDrawer()" aria-hidden="true"></div>
 <div class="drawer" id="addDrawer" role="dialog" aria-modal="true" aria-labelledby="addDrawerTitle">
   <div class="drawer-head">
@@ -3676,10 +3693,59 @@ function objInputKey(ev,meterId){
   if(ev.key==='Enter'){ ev.preventDefault(); objSaveRow(meterId); }
   else if(ev.key==='Escape'){ objCancelRow(); }
 }
+// Широкий редактор поля строки «Объектов» (просьба 15.10.2026): в узкой ячейке таблицы вписывать
+// текст неудобно, поэтому по фокусу на поле под ним всплывает панель с подписью столбца и большим
+// многострочным полем. Набранное сразу пишется в само поле строки — сохранение строки (✓, Enter)
+// работает как раньше. Поле ищем по id, а не держим ссылку: строка могла перерисоваться.
+const OBJ_POP_LABELS={ objTenant_:'Арендатор', objRental_:'Наименование аренды', objSign_:'Примечание' };
+let objPopInputId=null;
+function objPopTarget(){ return objPopInputId ? $(objPopInputId) : null; }
+function objOpenPop(inp){
+  const prev=objPopTarget(); if(prev) prev.classList.remove('popped');
+  objPopInputId=inp.id; inp.classList.add('popped');
+  const key=Object.keys(OBJ_POP_LABELS).find(k=>inp.id.startsWith(k));
+  $('objPopLabel').textContent=OBJ_POP_LABELS[key]||'';
+  const ta=$('objPopText'); ta.value=inp.value; objPopCount();
+  $('objPop').classList.add('open'); objPlacePop();
+  ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+}
+function objPlacePop(){
+  const inp=objPopTarget(), pop=$('objPop');
+  if(!inp || !inp.isConnected){ objClosePop(); return; }
+  const r=inp.getBoundingClientRect(), w=Math.min(380, window.innerWidth-16);
+  pop.style.width=w+'px';
+  pop.style.left=Math.min(Math.max(8, r.left), window.innerWidth-w-8)+'px';
+  let top=r.bottom+6; const h=pop.offsetHeight;
+  if(top+h>window.innerHeight-8) top=Math.max(8, r.top-h-6);
+  pop.style.top=top+'px';
+}
+function objPopCount(){ $('objPopCount').textContent=$('objPopText').value.length+' / 120'; }
+function objPopInput(){ const inp=objPopTarget(); if(inp) inp.value=$('objPopText').value.replace(/\s*\n\s*/g,' '); objPopCount(); }
+function objPopKey(ev){
+  if(ev.key==='Enter' && !ev.shiftKey){ ev.preventDefault(); const id=objEditingId; objClosePop(); if(id!=null) objSaveRow(id); }
+  else if(ev.key==='Escape'){ ev.preventDefault(); objClosePop(); objCancelRow(); }
+  else if(ev.key==='Tab'){
+    ev.preventDefault();
+    const all=[...document.querySelectorAll('#objTable .obj-input')], i=all.indexOf(objPopTarget());
+    const next=all[(i+(ev.shiftKey?-1:1)+all.length)%all.length];
+    objClosePop(); if(next) next.focus();
+  }
+}
+function objPopBlur(){ setTimeout(()=>{ if(document.activeElement!==$('objPopText')) objClosePop(); },150); }
+function objClosePop(){
+  const inp=objPopTarget(); if(inp) inp.classList.remove('popped');
+  $('objPop').classList.remove('open'); objPopInputId=null;
+}
+window.addEventListener('scroll', ()=>{ if($('objPop').classList.contains('open')) objPlacePop(); }, true);
+window.addEventListener('resize', ()=>{ if($('objPop').classList.contains('open')) objPlacePop(); });
 async function objSaveRow(meterId){
-  const tenantVal=$('objTenant_'+meterId).value.trim();
-  const rentalVal=$('objRental_'+meterId).value.trim();
-  const signVal=$('objSign_'+meterId).value.trim();
+  // Столбец мог быть скрыт шестерёнкой «Видимость» — тогда его поля в строке нет, и сохраняем
+  // прежнее значение (раньше обращение к несуществующему полю роняло сохранение строки).
+  const prev=objRows.find(r=>r.meterId===meterId)||{};
+  const fieldVal=(id,old)=>{ const el=$(id+meterId); return el ? el.value.trim() : (old||''); };
+  const tenantVal=fieldVal('objTenant_',prev.tenantName);
+  const rentalVal=fieldVal('objRental_',prev.rentalName);
+  const signVal=fieldVal('objSign_',prev.signatoryName);
   try{
     const d=await api('/api/objects/meter/'+meterId,'POST',{tenant_name:tenantVal,rental_name:rentalVal,signatory_name:signVal});
     const row=objRows.find(r=>r.meterId===meterId);
@@ -3871,7 +3937,7 @@ function renderObjTable(){
   const body=rows.map((r,idx)=>{
     const editing=isMaster && objEditingId===r.meterId;
     const editCell=(val,inputId)=>editing
-      ? `<input class="obj-input" id="${inputId}" value="${esc(val||'')}" onkeydown="objInputKey(event,${r.meterId})">`
+      ? `<input class="obj-input" id="${inputId}" value="${esc(val||'')}" maxlength="120" onfocus="objOpenPop(this)" onkeydown="objInputKey(event,${r.meterId})">`
       : (val?esc(val):'—');
     const actions=!isMaster ? '' : editing
       ? `<td><div class="obj-row-actions">
