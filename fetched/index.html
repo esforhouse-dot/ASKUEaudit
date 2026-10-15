@@ -74,30 +74,24 @@
   * { box-sizing:border-box; }
   html, body { background:var(--bg); }
   body { margin:0; background:var(--bg); color:var(--tx);
-    font:14px/1.5 var(--font-body); padding:18px; transition:background 200ms ease, color 200ms ease; }
+    font:14px/1.5 var(--font-body); padding:0; transition:background 200ms ease, color 200ms ease; }
   /* Аварийная защита: forced-colors (Windows high-contrast) — там тени не рендерятся, без
      обводки контролы становятся неразличимы. */
   @media (forced-colors: active) {
     .card, .ccard, .pin, button, .minfo-val, .minfo-input, input, select, .tab-btn.active,
-    .mpicker-trigger, .month-picker-trigger, .mcat-trigger, .status-row, .nav-action-btn,
+    .mpicker-trigger, .month-picker-trigger, .mcat-trigger, .nav-action-btn,
     .profile-wrap, .obj-wrap, .settings-panel, .icon-menu-list, .sidebar, .side-btn,
     .mpicker-list, .month-picker-list, .mcat-list, .reg-tooltip, .reg-readout, .tabs,
     .month-nav-arrow, .minfo-edit-btn, .minfo-save-btn, .obj-act-btn {
       box-shadow:none !important; border:1px solid CanvasText !important;
     }
   }
-  /* Ширина панели — на всю 12-колоночную сетку (было узко под 1060px, часовке в «Почасовом
-     потреблении» не хватало места и она уезжала в горизонтальный скролл). Разделы слева (Модем/
-     Приборы учёта/АСКУЭ/…) раньше были отдельной колонкой шириной 200px — теперь это выпадающее
-     меню НАД контентом (тот же паттерн, что раньше был только для мобильного < 760px, просто
-     теперь всегда, без брейкпоинта), контент получает всю освободившуюся ширину. */
+  /* Ширина контента — до 1320px (часовке «Почасового потребления» нужно место, иначе уезжает в
+     горизонтальный скролл); разделы — в боковом меню слева (каркас редизайна ниже). */
   .wrap { max-width:1320px; margin:0 auto; }
   .layout { display:flex; flex-direction:column; }
-  /* Компактная кнопка-триггер (не на всю ширину — иначе сливается с status-row/mpicker ниже,
-     все они одной высоты и заливки), слева — бургер из 2 черточек, стандартно превращающийся
-     в крестик при открытом меню (без отдельной стрелки — бургер сам по себе индикатор). */
-  .nav-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
-  .nav-wrap { position:relative; }
+  /* Шапка раздела: [меню на телефоне] заголовок … действия раздела справа. */
+  .nav-row { display:flex; align-items:center; gap:10px 12px; flex-wrap:wrap; margin-bottom:16px; min-height:38px; }
   .nav-actions { display:flex; align-items:center; gap:8px; margin-left:auto; flex-wrap:wrap; }
   .nav-action-btn { display:inline-flex; align-items:center; gap:7px; background:var(--card2);
     border:var(--card-border); color:var(--muted); border-radius:10px; padding:9px 14px;
@@ -125,34 +119,84 @@
   .icon-menu-wrap.open .icon-menu-list { display:block; }
   .icon-menu-item { padding:9px 12px; border-radius:8px; cursor:pointer; font-size:13px; color:var(--tx); }
   .icon-menu-item:hover { background:color-mix(in srgb, var(--accent) 14%, transparent); }
-  .nav-trigger { display:inline-flex; align-items:center; gap:10px; width:auto;
-    background:var(--card2); border:var(--card-border); border-radius:10px; padding:9px 16px 9px 12px;
-    font-size:13px; font-weight:600; color:var(--tx); cursor:pointer; font-family:inherit;
-    box-shadow:var(--raised-sm); }
-  .nav-trigger.open { box-shadow:var(--inset-sm); }
-  .burger { display:inline-flex; flex-direction:column; justify-content:center; gap:4px;
-    width:16px; height:12px; flex:none; }
-  .burger span { display:block; height:2px; width:100%; border-radius:2px; background:var(--muted);
-    transition:transform 200ms var(--ease-out), background 150ms ease; transform-origin:center; }
-  .nav-trigger:hover .burger span, .nav-trigger.open .burger span { background:var(--accent); }
-  .nav-trigger.open .burger span:first-child { transform:translateY(3px) rotate(45deg); }
-  .nav-trigger.open .burger span:last-child { transform:translateY(-3px) rotate(-45deg); }
-  .sidebar { display:none; position:absolute; left:0; top:calc(100% + 6px); z-index:20;
-    width:260px; max-width:calc(100vw - 36px);
-    flex-direction:column; background:var(--card); border:var(--card-border); border-radius:12px;
-    padding:8px; box-shadow:var(--raised); max-height:70vh; overflow-y:auto; }
-  .sidebar.open { display:flex; }
-  .side-btn { display:block; width:100%; text-align:left; background:transparent; color:var(--muted);
-    border:none; border-radius:10px; padding:11px 12px; font-size:13px; font-weight:600; box-shadow:none;
-    cursor:pointer; margin-bottom:6px; font-family:inherit; transition:color 150ms ease, background 150ms ease; }
-  .side-btn.active {
-    background:linear-gradient(90deg, color-mix(in srgb, var(--accent) 22%, transparent), color-mix(in srgb, var(--accent) 6%, transparent)), var(--card2);
-    color:var(--focus-ring);
-    box-shadow:0 6px 16px -6px color-mix(in srgb, var(--accent) 40%, transparent); }
-  .side-btn:hover:not(.active) { background:color-mix(in srgb, var(--accent) 8%, transparent); color:var(--tx); }
-  /* Роль «Пользователь» (access_role='limited') — видит только «Объекты», см. checkSession() в скрипте. */
+  /* ── Каркас (редизайн, этап 2): боковое меню + основная колонка ──
+     Меню — постоянная колонка 208px, прилипает к окну и прокручивается само, если пунктов больше
+     высоты экрана. Ниже 900px уезжает за левый край и выезжает по кнопке .nav-trigger поверх
+     контента с подложкой .side-scrim (класс .open вешает toggleNavMenu на #sidebar). */
+  .app { display:flex; min-height:100vh; }
+  .sidebar { position:sticky; top:0; align-self:flex-start; flex:none; width:208px; height:100vh;
+    overflow-y:auto; display:flex; flex-direction:column; gap:14px; padding:14px 10px 12px;
+    background:var(--card); border-right:1px solid var(--line); z-index:30; }
+  .main { flex:1; min-width:0; padding:18px 24px 32px; }
+  .side-brand { display:flex; align-items:center; gap:8px; padding:0 4px; }
+  .side-logo { width:26px; height:26px; flex:none; display:flex; align-items:center; justify-content:center;
+    background:var(--brand-blue); color:#fff; }
+  .side-logo svg { width:16px; height:16px; }
+  .side-brand-name { font-weight:700; font-size:14px; letter-spacing:.04em; }
+  .side-close { display:none; margin-left:auto; width:32px; height:32px; padding:0; background:transparent;
+    color:var(--muted); box-shadow:none; align-items:center; justify-content:center; }
+  .side-close svg { width:16px; height:16px; }
+  .side-cap { font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--muted);
+    padding:0 10px 6px; }
+  .side-nav .side-cap { padding-top:4px; }
+  .side-nav .side-cap-eq { padding-top:14px; }
+  .side-project-name { padding:0 10px; font-size:13px; font-weight:600; line-height:1.35; overflow-wrap:anywhere; }
+  .side-admin { display:none; flex-direction:column; gap:6px; padding:10px 0;
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+  body.impersonating .side-admin { display:flex; }
+  body.impersonating .side-project { display:none; }
+  .side-select { width:100%; height:32px; padding:0 8px; border:1px solid var(--line); background:var(--card);
+    color:var(--tx); font:600 13px var(--font-body); }
+  .side-admin-back { align-self:flex-start; padding:0 10px; font-size:12px; color:var(--focus-ring); }
+  .side-nav { display:flex; flex-direction:column; gap:1px; }
+  .side-btn { display:flex; align-items:center; gap:9px; width:100%; height:34px; padding:0 10px; margin:0;
+    text-align:left; background:transparent; color:var(--tx); border:none; box-shadow:none;
+    font:500 13px var(--font-body); cursor:pointer; transition:background 120ms ease, color 120ms ease; }
+  .side-btn svg { width:16px; height:16px; flex:none; color:var(--muted); }
+  .side-btn > span:first-of-type { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .side-btn:hover:not(.active) { background:var(--card2); }
+  .side-btn.active { background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--focus-ring);
+    font-weight:600; box-shadow:inset 2px 0 0 var(--accent); }
+  .side-btn.active svg { color:var(--accent); }
+  .side-btn:active:not(:disabled) { transform:none; filter:none; }
+  .side-foot { margin-top:auto; display:flex; flex-direction:column; gap:10px; padding:10px 4px 0;
+    border-top:1px solid var(--line); }
+  .side-status { display:flex; flex-direction:column; gap:6px; font-size:12px; }
+  .side-st-row { display:flex; align-items:flex-start; gap:8px; }
+  .side-st-row .dot { margin-top:5px; }
+  .side-st-row .status-text { font-size:12px; line-height:1.4; }
+  .side-status .status-sep { display:none !important; }
+  .side-status .updated { line-height:1.4; }
+  .side-actions { display:flex; align-items:center; gap:10px; }
+  .side-actions .link-btn { margin-left:auto; }
+  /* Выбор модема (P1-02) в меню — компактный, без большой карточки .mpicker раздела. */
+  .sidebar .mpicker { margin:0; max-width:none; }
+  .sidebar .mpicker-trigger { padding:6px 10px; font-size:13px; }
+  .side-scrim { display:none; }
+  /* Кнопка меню — только на узком экране, на широком меню и так всегда видно. */
+  .nav-trigger { display:none; flex:none; width:38px; height:38px; padding:0; align-items:center; justify-content:center;
+    background:var(--card); border:1px solid var(--line); color:var(--tx); box-shadow:none; }
+  .burger { display:inline-flex; flex-direction:column; justify-content:center; gap:3px; width:16px; height:12px; }
+  .burger span { display:block; height:2px; width:100%; background:currentColor; }
+  @media (max-width:900px) {
+    .main { padding:12px 14px 28px; }
+    /* Действия раздела — своей строкой под заголовком: рядом с ним на телефоне им не хватает
+       места, а сжиматься (вместо переноса) они не умеют — уезжали за правый край. */
+    .nav-row > .nav-actions, .nav-row > .tabs { flex:1 0 100%; margin-left:0; }
+    .nav-trigger { display:inline-flex; }
+    .side-close { display:inline-flex; }
+    .sidebar { position:fixed; left:0; top:0; height:100vh; height:100dvh; width:260px; max-width:86vw;
+      transform:translateX(-100%); transition:transform 220ms var(--ease-out); box-shadow:none; }
+    .sidebar.open { transform:none; box-shadow:var(--pop-shadow); }
+    .sidebar.open + .side-scrim { display:block; position:fixed; inset:0; z-index:25; background:rgba(17,19,21,.35); }
+  }
+  @media (prefers-reduced-motion:reduce) { .sidebar { transition:none; } }
+  /* Нет модема у проекта — разделы пусты, остаётся только экран привязки модема. */
+  body.no-modem .side-nav, body.no-modem .side-status { display:none; }
+  /* Роль «Пользователь» (access_role='limited') — видит только «Объекты», см. checkSession() в скрипте.
+     Меню остаётся (решение владельца 15.10.2026), но с одним пунктом и без статуса оборудования. */
   body.role-limited .side-btn:not([data-tab="objects"]) { display:none; }
-  body.role-limited .status-row { display:none; }
+  body.role-limited .side-cap-eq, body.role-limited .side-status { display:none; }
   /* ── Лимиты потребления и диаграмма расхода ── */
   .lim-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
   /* Три лимита — один и тот же объект, повторённый трижды: одинаковые поля, отступы и порядок
@@ -222,20 +266,10 @@
   .content { flex:1; min-width:0; }
   .subtab-panel { display:none; }
   .subtab-panel.active { display:block; }
-  .top { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
   h1 { font:700 20px/1.2 var(--font-body); margin:0; letter-spacing:-.01em; }
-  .top .modem { font:600 10.5px/1 var(--font-mono); text-transform:uppercase; letter-spacing:.1em;
-    color:var(--muted); margin-bottom:7px; }
-  .top .right { text-align:right; }
   .auto { display:inline-flex; align-items:center; gap:6px; color:var(--muted); font-size:12px; cursor:pointer; user-select:none; }
   .auto input { accent-color:var(--accent); }
   .updated { color:var(--muted); font-size:11px; }
-  .status-row { display:flex; align-items:stretch; padding:0; margin:12px 0 18px; overflow:hidden;
-    border-radius:13px; background:
-      radial-gradient(160% 220% at 0% 0%, color-mix(in srgb, var(--brand-blue) 9%, transparent), transparent 65%),
-      var(--card2); box-shadow:var(--inset-sm); border:var(--card-border); }
-  .status-chip { display:flex; align-items:center; gap:9px; padding:12px 16px; }
-  .status-sep { width:1px; flex:none; background:var(--line); margin:10px 0; }
   .dot { position:relative; width:7px; height:7px; border-radius:50%; background:var(--off); flex:none; }
   .dot::after { content:''; position:absolute; inset:-5px; border-radius:50%; border:1.5px solid transparent; }
   .dot.online { background:var(--brand-lime); box-shadow:0 0 0 3px color-mix(in srgb, var(--brand-lime) 22%, transparent); }
@@ -698,10 +732,6 @@
     background:linear-gradient(90deg, color-mix(in srgb, var(--accent) 24%, transparent), color-mix(in srgb, var(--accent) 6%, transparent));
     color:var(--focus-ring); font-weight:600; }
 
-  .imp-banner { display:none; align-items:center; gap:10px; background:color-mix(in srgb, var(--warn) 12%, transparent);
-    border:1px solid var(--warn); color:var(--tx); border-radius:11px; padding:10px 14px;
-    margin-bottom:14px; font-size:13px; }
-  .imp-banner button { flex:none; padding:7px 12px; font-size:12px; background:var(--warn); }
   .tamper-banner { display:none; background:color-mix(in srgb, var(--err) 12%, transparent); border:1px solid var(--err);
     color:var(--tx); border-radius:11px; padding:10px 14px; margin-top:12px; font-size:13px; }
   .tamper-banner b { color:var(--err); }
@@ -849,7 +879,6 @@
   body { font-feature-settings:"tnum" 1; -webkit-font-smoothing:antialiased; }
   h1 { font:700 24px/1.15 var(--font-body); letter-spacing:-.01em; }
   .sec-title { font-size:11px; font-weight:700; letter-spacing:.16em; }
-  .top .modem { letter-spacing:.18em; }
 
   /* Плоские поверхности вместо нео-подсветки углов (radial-gradient в правилах выше). Пикеры
      объекта/месяца раньше выделялись синей подсветкой угла — была жалоба, что контрол сливается
@@ -857,15 +886,13 @@
      серых рамок остальных контролов чёрная рамка однозначно читается как «главный контрол». */
   .mpicker-trigger, .month-picker-trigger, .ccard { background:var(--card2); }
   .mpicker-trigger, .month-picker-trigger { border:1px solid var(--tx); }
-  .status-row { background:transparent; border:none;
-    border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
-  .side-btn.active, .mpicker-item.active, .month-picker-item.active, .mcat-item.active,
+  .mpicker-item.active, .month-picker-item.active, .mcat-item.active,
   .ym-month.active, .ym-year.active {
     background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--focus-ring);
-    box-shadow:none; }   /* у .side-btn.active было мягкое синее свечение — в этой системе теней нет */
+    box-shadow:none; }
 
   /* Единственная уцелевшая тень — у плавающих панелей: им нужен отрыв от контента под ними */
-  .settings-panel, .sidebar, .icon-menu-list, .mpicker-list, .month-picker-list, .mcat-list,
+  .settings-panel, .icon-menu-list, .mpicker-list, .month-picker-list, .mcat-list,
   .reg-tooltip, .lim-tooltip { box-shadow:var(--pop-shadow); }
 
   /* Кнопки и контролы — волосяная рамка вместо тиснения, состояние — цветом рамки */
@@ -1007,22 +1034,70 @@
 </script>
 </head>
 <body>
-<div class="wrap">
-  <div class="imp-banner" id="impBanner">
-    <span>Вы вошли как проект «<b id="impProjectName"></b>» (администратор)</span>
-    <button onclick="stopImpersonate()" style="margin-left:auto">Вернуться в админку</button>
+<!-- Каркас редизайна (этап 2, UI_REDESIGN_PLAN.md): постоянное боковое меню слева вместо
+     выпадающего «бургер»-меню над контентом. В меню же переехали шапка (тема, «Выйти»,
+     автообновление) и строка статуса связи — на каждой странице это одно и то же, отдельная
+     полоса над контентом занимала место без пользы. На узком экране меню — выезжающая панель. -->
+<div class="app">
+<aside class="sidebar" id="sidebar" aria-label="Разделы панели">
+  <div class="side-brand">
+    <span class="side-logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M3 19 L10 7 L14 13 L16 10 L21 19 Z"/></svg></span>
+    <span class="side-brand-name">АСКУЭ</span>
+    <button type="button" class="side-close" onclick="closeNavMenu()" aria-label="Закрыть меню"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
-  <div class="top">
-    <div><div class="modem">Панель управления и мониторинга</div><h1 id="pageTitle">АСКУЭ</h1></div>
-    <div class="right">
-      <label class="auto"><input type="checkbox" id="autoChk" checked onchange="toggleAuto()"> автообновление 30с</label>
+  <!-- Клиент привязан ровно к одному проекту (users.project_id) — переключать ему нечего,
+       название проекта просто текстом. Админ в режиме «войти как» видит вместо него
+       переключатель проектов (#impBanner, заполняет checkSession) и возврат в админку. -->
+  <div class="side-project">
+    <div class="side-cap">Проект</div>
+    <div class="side-project-name" id="sideProjectName">—</div>
+  </div>
+  <div class="side-admin" id="impBanner">
+    <div class="side-cap">Администратор · проект</div>
+    <select class="side-select" id="impProjectSel" onchange="switchImpProject(this.value)" aria-label="Проект"></select>
+    <button type="button" class="link-btn side-admin-back" onclick="stopImpersonate()">← Вернуться в админку</button>
+  </div>
+  <!-- P1-02 (ADR-14): выбор модема виден только у проекта с 2+ модемами (renderModemPicker). -->
+  <div class="mpicker" id="modemPickerWrap" style="display:none">
+    <button type="button" class="mpicker-trigger" id="modemPickerTrigger" onclick="toggleModemPicker()">
+      <span class="mpicker-label-wrap">
+        <div class="mpicker-eyebrow">Модем</div>
+        <div class="mpicker-label-text" id="modemPickerLabel">—</div>
+      </span>
+      <span class="mpicker-chev">▾</span>
+    </button>
+    <div class="mpicker-list" id="modemPickerList"></div>
+  </div>
+  <nav class="side-nav">
+    <div class="side-cap">Учёт</div>
+    <button class="side-btn" data-tab="objects" onclick="switchTab('objects')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="3" width="16" height="18"/><path d="M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2"/></svg><span>Объекты</span></button>
+    <button class="side-btn" data-tab="meter" onclick="switchTab('meter')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 13l4-4"/></svg><span>Приборы учёта</span></button>
+    <button class="side-btn" data-tab="askue" onclick="switchTab('askue')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>АСКУЭ</span></button>
+    <button class="side-btn" data-tab="reports" onclick="switchTab('reports')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 13h7M9 17h5"/></svg><span>Отчёты</span></button>
+    <button class="side-btn" data-tab="payments" onclick="switchTab('payments')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg><span>Тарифы</span></button>
+    <button class="side-btn" data-tab="register" onclick="switchTab('register')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><span>Регистратор</span></button>
+    <button class="side-btn" data-tab="alerts" onclick="switchTab('alerts')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0"/></svg><span>Уведомления</span><span class="al-badge" id="alBadge" style="display:none">0</span></button>
+    <div class="side-cap side-cap-eq">Оборудование</div>
+    <button class="side-btn" data-tab="modem" onclick="switchTab('modem')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="12" width="18" height="8"/><path d="M7 16h.01M17 12V6M14 8a4 4 0 0 1 6 0"/></svg><span>Модем</span></button>
+    <button class="side-btn" data-tab="io" onclick="switchTab('io')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 3v6M16 3v6M6 9h12v4a6 6 0 0 1-12 0zM12 19v2"/></svg><span>Входы / выходы</span></button>
+  </nav>
+  <div class="side-foot">
+    <div class="side-status">
+      <div class="side-st-row"><span class="dot" id="dot"></span><span class="status-text" id="status">Проверка связи…</span></div>
+      <span class="status-sep" id="metersSep" style="display:none"></span>
+      <div class="side-st-row" id="metersChip" style="display:none"><span class="dot" id="metersDot"></span><span class="status-text" id="metersStatus"></span></div>
       <div class="updated" id="updated"></div>
-      <div style="margin-top:6px;display:flex;gap:10px;justify-content:flex-end;align-items:center">
-        <button type="button" class="nav-action-btn nav-action-icon" id="themeToggleBtn" onclick="toggleTheme()" title="Светлая/тёмная тема" aria-label="Переключить тему"></button>
-        <button class="link-btn" onclick="logout()">Выйти</button>
-      </div>
+      <label class="auto"><input type="checkbox" id="autoChk" checked onchange="toggleAuto()"> автообновление 30 с</label>
+    </div>
+    <div class="side-actions">
+      <button type="button" class="nav-action-btn nav-action-icon" id="themeToggleBtn" onclick="toggleTheme()" title="Светлая/тёмная тема" aria-label="Переключить тему"></button>
+      <button class="link-btn" onclick="logout()">Выйти</button>
     </div>
   </div>
+</aside>
+<div class="side-scrim" onclick="closeNavMenu()" aria-hidden="true"></div>
+<main class="main">
+<div class="wrap">
 
   <div class="card" id="noModemCard" style="display:none;padding:28px 24px;max-width:440px;margin:0 auto">
     <div id="addModemForm">
@@ -1056,37 +1131,14 @@
   </div>
 
   <div id="mainContent">
-  <div class="status-row">
-    <span class="status-chip">
-      <span class="dot" id="dot"></span>
-      <span class="status-text" id="status">Проверка связи…</span>
-    </span>
-    <span class="status-sep" id="metersSep" style="display:none"></span>
-    <span class="status-chip" id="metersChip" style="display:none">
-      <span class="dot" id="metersDot"></span>
-      <span class="status-text" id="metersStatus"></span>
-    </span>
-  </div>
-
   <div class="layout">
+  <!-- Шапка раздела: заголовок слева, действия раздела справа (их видимость решает switchTab).
+       Кнопка меню видна только на узком экране — там боковое меню убрано за край. -->
   <div class="nav-row">
-  <div class="nav-wrap">
-    <button class="nav-trigger" id="navTrigger" onclick="toggleNavMenu()">
-      <span class="burger"><span></span><span></span></span>
-      <span id="navTriggerLabel">Модем</span>
+    <button type="button" class="nav-trigger" id="navTrigger" onclick="toggleNavMenu()" aria-label="Меню разделов">
+      <span class="burger"><span></span><span></span><span></span></span>
     </button>
-    <nav class="sidebar" id="sidebar">
-      <button class="side-btn" data-tab="modem" onclick="switchTab('modem')">Модем</button>
-      <button class="side-btn" data-tab="meter" onclick="switchTab('meter')">Приборы учёта</button>
-      <button class="side-btn" data-tab="askue" onclick="switchTab('askue')">АСКУЭ</button>
-      <button class="side-btn" data-tab="payments" onclick="switchTab('payments')">Тарифы</button>
-      <button class="side-btn" data-tab="register" onclick="switchTab('register')">Регистратор</button>
-      <button class="side-btn" data-tab="objects" onclick="switchTab('objects')">Объекты</button>
-      <button class="side-btn" data-tab="reports" onclick="switchTab('reports')">Автоматизированные отчёты</button>
-      <button class="side-btn" data-tab="io" onclick="switchTab('io')">Входы / выходы</button>
-      <button class="side-btn" data-tab="alerts" onclick="switchTab('alerts')">Уведомления и отклонения<span class="al-badge" id="alBadge" style="display:none">0</span></button>
-    </nav>
-  </div>
+    <h1 id="pageTitle">АСКУЭ</h1>
   <div class="tabs" id="alertSubtabsNav" style="display:none;margin:0">
     <button class="tab-btn active" data-asub="feed" onclick="switchAlertTab('feed')"><span class="tab-btn-label">Инциденты</span></button>
     <button class="tab-btn" data-asub="limits" onclick="switchAlertTab('limits')"><span class="tab-btn-label">Лимиты</span></button>
@@ -1251,20 +1303,6 @@
 
   <!-- ── Модем ── -->
   <div class="tab-panel" id="tab-modem">
-    <!-- P1-02 (ADR-14): виден только когда у проекта 2+ модемов — renderModemPicker скрывает
-         wrap целиком для сегодняшнего большинства (один модем на проект), поведение не меняется. -->
-    <div class="mpicker" id="modemPickerWrap" style="display:none">
-      <button type="button" class="mpicker-trigger" id="modemPickerTrigger" onclick="toggleModemPicker()">
-        <span class="mpicker-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 6h6M9 18h.01"/></svg></span>
-        <span class="mpicker-label-wrap">
-          <div class="mpicker-eyebrow">Модем</div>
-          <div class="mpicker-label-text" id="modemPickerLabel">—</div>
-        </span>
-        <span class="mpicker-chev">▾</span>
-      </button>
-      <div class="mpicker-list" id="modemPickerList"></div>
-    </div>
-
     <h2 class="sec-title">Графики · сигнал и температура</h2>
     <div class="card">
       <svg class="chart" id="chart" viewBox="0 0 800 150" preserveAspectRatio="none"></svg>
@@ -1903,6 +1941,8 @@
   <div class="msg" id="msg"></div>
   </div>
 </div>
+</main>
+</div>
 
 <script>
 const $=id=>document.getElementById(id);
@@ -2448,7 +2488,7 @@ function renderMetersStatus(d){
   if(!d || !d.total){ chip.style.display='none'; sep.style.display='none'; return; }
   chip.style.display=''; sep.style.display='';
   dot.className = 'dot '+(d.online===d.total?'online':d.online===0?'err':'warn');
-  txt.textContent = `Приборы учёта на связи ${d.online} из ${d.total}`;
+  txt.textContent = `Приборы на связи: ${d.online} из ${d.total}`;
 }
 async function refreshMetersStatus(){
   try{ renderMetersStatus(await (await fetch(dUrl('/api/meters/status'))).json()); }catch(e){}
@@ -2702,12 +2742,33 @@ async function stopImpersonate(){
   try{ await fetch('/api/admin/stop-impersonate',{method:'POST'}); }catch(e){}
   location.href='/admin.html';
 }
+// Переключатель проектов в меню — только у админа в режиме «войти как». Смена проекта — то же
+// действие, что кнопка «Войти как» в админке (сервер перевешивает имперсонацию на другой проект),
+// после него страница перезагружается целиком: модемы, счётчики, объекты — всё другое.
+async function loadImpProjects(currentId, currentName){
+  const sel=$('impProjectSel');
+  sel.innerHTML=`<option value="${currentId}">${esc(currentName||('#'+currentId))}</option>`;
+  try{
+    const d=await (await fetch('/api/admin/projects')).json();
+    if(d.projects && d.projects.length){
+      sel.innerHTML=d.projects.map(p=>`<option value="${p.id}"${p.id===currentId?' selected':''}>${esc(p.name)}</option>`).join('');
+    }
+  }catch(e){}
+}
+async function switchImpProject(id){
+  try{
+    const r=await fetch('/api/admin/impersonate/'+encodeURIComponent(id),{method:'POST'});
+    if(!r.ok) throw new Error();
+    location.reload();
+  }catch(e){ showErr('Не удалось переключить проект'); }
+}
 async function checkSession(){
   try{
     const me=await (await fetch('/api/me')).json();
+    $('sideProjectName').textContent=me.projectName||'—';
     if(me.isImpersonating){
-      document.getElementById('impProjectName').textContent=me.projectName||('#'+me.projectId);
-      document.getElementById('impBanner').style.display='flex';
+      document.body.classList.add('impersonating');
+      loadImpProjects(me.projectId, me.projectName);
     }
     const limited = me.role==='user' && me.accessRole==='limited';
     try{ localStorage.setItem('accessRole', limited?'limited':'master'); }catch(e){}
@@ -4627,7 +4688,6 @@ function switchTab(name){
   document.querySelectorAll('.side-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
   document.querySelectorAll('.content > .tab-panel').forEach(p=>p.classList.toggle('active', p.id==='tab-'+name));
   if(document.getElementById('mainContent').style.display!=='none') $('pageTitle').textContent=TAB_TITLES[name]||name;
-  const trigLbl=$('navTriggerLabel'); if(trigLbl) trigLbl.textContent=TAB_TITLES[name]||name;
   $('modemQuickActions').style.display = name==='modem' ? 'flex' : 'none';
   $('alertSubtabsNav').style.display = name==='alerts' ? 'flex' : 'none';
   $('objQuickNav').style.display = name==='objects' ? 'flex' : 'none';
@@ -4669,10 +4729,8 @@ function closeNavMenu(){
   if(sb) sb.classList.remove('open');
   if(tr) tr.classList.remove('open');
 }
-document.addEventListener('click', (e)=>{
-  const wrap=document.querySelector('.nav-wrap');
-  if(wrap && !wrap.contains(e.target)) closeNavMenu();
-});
+// Снаружи меню закрывает подложка .side-scrim (её onclick) — отдельный обработчик клика по
+// документу больше не нужен: на широком экране меню постоянное и закрывать там нечего.
 document.addEventListener('keydown', (e)=>{
   if(e.key==='Escape') closeNavMenu();
 });
@@ -4695,7 +4753,9 @@ try{
 }catch(e){}
 try{ const r=localStorage.getItem('objResource'); if(r && OBJ_RESOURCES.some(x=>x.key===r)) objResource=r; }catch(e){}
 
-let initialTab = accessRole==='limited' ? 'objects' : 'modem';
+// Стартовый раздел — «Объекты» (решение владельца 15.10.2026, UI_REDESIGN_PLAN.md); дальше
+// панель открывается там, где человек был в прошлый раз.
+let initialTab = 'objects';
 try{ if(accessRole!=='limited'){ const t=localStorage.getItem('activeTab'); if(t) initialTab=t; } }catch(e){}
 switchTab(initialTab);
 
@@ -4729,8 +4789,10 @@ async function checkContext(){
     document.getElementById('noModemCard').style.display='block';
     document.getElementById('mainContent').style.display='none';
     document.getElementById('pageTitle').textContent='АСКУЭ';
+    document.body.classList.add('no-modem');
     return;
   }
+  document.body.classList.remove('no-modem');
   document.getElementById('noModemCard').style.display='none';
   document.getElementById('mainContent').style.display='block';
   currentModemId = ctx.modem.id;
