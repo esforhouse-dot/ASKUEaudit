@@ -381,7 +381,35 @@ Git на сервере не используется. Деплой — одно
 |---|---|---|
 | `Identity file C:/Users/ДИР/.ssh/id_ed25519 not accessible` | в `.git/config` остался `core.sshCommand` с путями прошлой машины | `git config --unset core.sshCommand` (ключ и `known_hosts` лежат в стандартных местах, ssh найдёт сам). Чинить путь вручную плохо: в `C:/Users/ООО ДИР/` есть пробел и кириллица, и разбор строки ломается |
 | `Host key verification failed` | в `~/.ssh/known_hosts` нет записи github.com | `ssh-keyscan -t ed25519 github.com`, **сверить отпечаток** с опубликованным GitHub (`SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU`) и дописать в `known_hosts`. Не добавлять вслепую |
-| `Permission denied (publickey)` | ключ не привязан к аккаунту (см. §2.3 — лежал чужой `tract-deploy`) | решение владельца: добавить публичный ключ в GitHub, либо перейти на HTTPS + токен, либо поставить `gh` CLI |
+| `Permission denied (publickey)` | ключ не привязан к аккаунту (см. §2.3 — лежал чужой `tract-deploy`) | **решено 15.10.2026: ушли с SSH на HTTPS + токен**, см. §9.4 |
 
 Быстрая проверка доступа одной командой: `git ls-remote origin -h refs/heads/main` — отвечает
 хешем, значит всё в порядке; падает — смотреть таблицу выше.
+
+### 9.4. Как сейчас устроен доступ к GitHub (решение владельца 15.10.2026)
+
+**SSH больше не используется** — remote переведён на HTTPS:
+
+```
+origin  https://github.com/esforhouse-dot/ASKUEaudit.git
+```
+
+Авторизация — **fine-grained Personal Access Token** (права: `Contents: Read and write`,
+`Metadata: Read-only`, только репозиторий `ASKUEaudit`; срок — до 13.01.2027, дальше владелец
+выпускает новый). Сам токен хранится в **Credential Manager Windows** (`credential.helper=manager`),
+в файлы репозитория и в `.git/config` НЕ попадает — проверено.
+
+Что это значит для новой машины:
+
+1. `git clone https://github.com/esforhouse-dot/ASKUEaudit.git` — клон по HTTPS, без ключей.
+2. При первом `git push` Credential Manager спросит логин/токен один раз и запомнит. Логин —
+   `esforhouse-dot`, пароль — **токен**, не пароль от аккаунта GitHub (он не подойдёт).
+3. Claude сам токен не придумает и из памяти не достанет — **спрашивать у владельца**, как и
+   пароль от VPS (§2.3, P0-01).
+4. Если push начал падать с `403` / `Authentication failed` — скорее всего истёк срок токена:
+   владелец выпускает новый на https://github.com/settings/personal-access-tokens, после чего
+   сохранить его командой (токен подставить, в файлы не писать):
+
+```bash
+printf 'protocol=https\nhost=github.com\nusername=esforhouse-dot\npassword=<ТОКЕН>\n\n' | git credential approve
+```
