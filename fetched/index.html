@@ -3611,7 +3611,7 @@ async function toggleObjColumn(key){
   try{
     await api('/api/objects/column-prefs','POST',{hiddenColumns:next});
     objHiddenColumns=next;
-    renderObjTable();
+    renderObjTable(); renderRepTable();
   }catch(e){ showErr(e.message); }
 }
 function switchObjTab(cat){
@@ -3891,10 +3891,9 @@ function renderObjTable(){
 // Раздел настроечный: показания в нём — витрина (видно, по каким приборам вообще есть данные),
 // а работа — проставить каждому прибору число месяца, в которое по нему уходит письмо. Строки
 // приходят из того же /api/objects/table (поле reportDay в ответе), поэтому разойтись в цифрах
-// с «Объектами» этот раздел не может по построению. Столбцы — подмножество тех же objColumnDefs:
-// без даты поверки, тарифа, стоимости и примечания (просьба пользователя 07.09.2026 — отчёт
-// отвечает на вопрос «сколько потреблено», остальное в нём лишнее).
-const REP_COL_KEYS=['num','tenant','rental','location','model','serial','startReading','endReading','ctRatio','consumption'];
+// с «Объектами» этот раздел не может по построению. Столбцы — те же, что сейчас видны в «Объектах»
+// (шестерёнка «Видимость», objHiddenColumns), плюс «Отчётный день» (решение владельца 15.10.2026):
+// таблица здесь, письмо с отчётом и выгрузка Excel из «Объектов» показывают один набор столбцов.
 // Переключателя периода у раздела НЕТ (убран 07.09.2026 по просьбе пользователя): период письма
 // задаёт отчётный день прибора, а не выбор на экране, поэтому пикер только сбивал бы с толку —
 // казалось бы, что он на отчёт влияет. Таблица всегда показывает текущий месяц: её роль здесь —
@@ -3958,7 +3957,11 @@ function updateRepGating(){
 async function loadRepTable(){
   if(repSiteId==null) return;
   try{
-    const d=await api('/api/objects/table?month='+new Date().toISOString().slice(0,7)+'&siteId='+repSiteId);
+    const [d,prefsD]=await Promise.all([
+      api('/api/objects/table?month='+new Date().toISOString().slice(0,7)+'&siteId='+repSiteId),
+      api('/api/objects/column-prefs').catch(()=>null),
+    ]);
+    if(prefsD) objHiddenColumns=prefsD.hiddenColumns||[];
     repRows=d.rows||[];
     repPeriodStart=d.periodStart||null; repPeriodEnd=d.periodEnd||null; repAsOfToday=!!d.asOfToday;
     renderRepTable(); renderRepGroups();
@@ -4050,7 +4053,8 @@ function renderRepTable(){
   const res=OBJ_RESOURCES.find(r=>r.key==='power');
   const startHeaderTxt='Показания на начало месяца'+(repPeriodStart?(' ('+fmtRuDate(repPeriodStart)+')'):'')+' ('+res.unit+')';
   const endHeaderTxt='Показания на конец месяца'+(repPeriodEnd?(' ('+fmtRuDate(repPeriodEnd)+(repAsOfToday?', ещё не завершён':'')+')'):'')+' ('+res.unit+')';
-  const cols=objColumnDefs(res,startHeaderTxt,endHeaderTxt,false).filter(c=>REP_COL_KEYS.includes(c.key));
+  let cols=objColumnDefs(res,startHeaderTxt,endHeaderTxt,false).filter(c=>!objHiddenColumns.includes(c.key));
+  if(!cols.length) cols=objColumnDefs(res,startHeaderTxt,endHeaderTxt,false).filter(c=>['num','location','serial','consumption'].includes(c.key));
 
   $('repEmptyNote').style.display = repRows.length ? 'none' : 'block';
   table.style.display = repRows.length ? 'table' : 'none';

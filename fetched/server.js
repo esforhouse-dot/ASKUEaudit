@@ -2575,8 +2575,16 @@ const siteNameStmt = db.prepare('SELECT name FROM sites WHERE id = ?');
 const reportProjectStmt = db.prepare('SELECT name, report_email FROM projects WHERE id = ?');
 // Сборка и отправка одного письма. asOfToday=false осознанно: период всегда заканчивается ВЧЕРА,
 // то есть заведомо в прошлом, и пометка «ещё не завершён» в заголовке столбца здесь невозможна.
-async function sendSiteReport({ siteId, day, meters, recipients, periodStart, periodEnd, today }) {
-  const cols = objectsExportCols(REPORT_COL_KEYS, periodStart, periodEnd, false, 'периода');
+// Столбцы письма — те же, что видны в «Объектах» (шестерёнка «Видимость», objects_column_prefs),
+// решение владельца 15.10.2026: отчёт, таблица «Отчётов» и выгрузка Excel из «Объектов» показывают
+// один и тот же набор. REPORT_COL_KEYS — запасной набор, если скрыли вообще всё.
+function reportColKeys(projectId) {
+  const hidden = getObjHiddenColumns(projectId);
+  const keys = OBJECTS_EXPORT_COLS.map((c) => c.key).filter((k) => !hidden.includes(k));
+  return keys.length ? keys : REPORT_COL_KEYS;
+}
+async function sendSiteReport({ siteId, projectId, day, meters, recipients, periodStart, periodEnd, today }) {
+  const cols = objectsExportCols(reportColKeys(projectId), periodStart, periodEnd, false, 'периода');
   const rows = buildObjectsRows(meters, siteId, periodStart, periodEnd, today);
   const totals = objectsTotals(rows);
   const site = siteNameStmt.get(siteId);
@@ -2718,7 +2726,7 @@ app.post('/api/reports/send-now', auth.requireMaster, async (req, res) => {
   const today = localStamp(Date.now()).date;
   const { periodStart, periodEnd } = reportPeriodFor(day, today);
   try {
-    const r = await sendSiteReport({ siteId, day, meters, recipients: proj.report_email, periodStart, periodEnd, today });
+    const r = await sendSiteReport({ siteId, projectId: req.projectId, day, meters, recipients: proj.report_email, periodStart, periodEnd, today });
     res.json({ ok: true, to: proj.report_email, metersCount: r.metersCount, period: r.periodTxt });
   } catch (e) {
     res.status(500).json({ error: 'письмо не отправлено: ' + e.message });
