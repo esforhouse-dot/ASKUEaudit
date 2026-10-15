@@ -1074,10 +1074,37 @@
   .mt-empty b { font-size:15px; }
   .mt-empty span { max-width:460px; color:var(--muted); font-size:13px; line-height:1.5; }
 
-  .mt-layout { display:flex; flex-wrap:wrap; gap:14px; align-items:flex-start; }
+  .mt-layout { display:flex; flex-direction:column; gap:12px; }
   .mt-box { background:var(--card); border:1px solid var(--line); min-width:0; }
-  .mt-list { flex:3 1 560px; }
-  .mt-card { flex:2 1 400px; padding:14px 16px 16px; }
+  .mt-card { padding:14px 16px 16px; }
+  /* Строка выбранного прибора + выпадающий список */
+  .mt-picker { position:relative; z-index:15; }
+  .mt-trigger { display:flex; align-items:center; gap:18px; width:100%; padding:10px 14px; text-align:left;
+    background:var(--card); color:var(--tx); border:1px solid var(--tx); box-shadow:none; font:400 13px var(--font-body); }
+  .mt-trigger:hover, .mt-picker.open .mt-trigger { border-color:var(--accent); }
+  .mt-trigger:active:not(:disabled) { transform:none; filter:none; }
+  .mt-trigger > .dot { flex:none; }
+  .mt-trig-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .mt-trig-main b { font-size:16px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mt-trig-main small { font-size:12px; color:var(--muted); }
+  .mt-trig-cap { font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .mt-trig-kv { flex:none; display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+  .mt-trig-kv b { font-size:15px; font-weight:600; white-space:nowrap; }
+  .mt-trig-kv b.mt-due { font-size:12px; }
+  .mt-trig-chev { flex:none; display:flex; color:var(--accent); transition:transform 150ms ease; }
+  .mt-trig-chev svg { width:18px; height:18px; }
+  .mt-picker.open .mt-trig-chev { transform:rotate(180deg); }
+  .mt-lnk.on { color:var(--on); } .mt-lnk.off { color:var(--err); } .mt-lnk.paused { color:var(--warn); }
+  .mt-panel { display:none; position:absolute; left:0; right:0; top:calc(100% + 6px);
+    max-height:min(70vh,640px); overflow:auto; box-shadow:var(--pop-shadow); }
+  .mt-picker.open .mt-panel { display:block; }
+  /* Заголовок карточки повторял бы строку выбора прямо над ней — прячем, остаются вкладки. */
+  .mt-card > .mc-head { display:none; }
+  /* Карточка во всю ширину — фазы и мощности дальше 760px не растягиваем, иначе числа одной
+     строки разъезжаются на полэкрана и читать их по строке трудно. */
+  .mc-phases, .mc-kvgrid { max-width:760px; }
+  .mt-card > .mc-warn { margin-top:0; margin-bottom:10px; }
+  @media (max-width:640px) { .mt-trigger { gap:12px; } .mt-trigger .hide-sm { display:none; } }
   .mt-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--line); }
   .mt-chips { display:flex; flex-wrap:wrap; gap:6px; }
   .chip { display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 10px; background:var(--card);
@@ -1136,8 +1163,10 @@
   .mc-warn span { flex:1 1 200px; }
   .mc-warn .link-btn { color:var(--err); font-weight:600; text-decoration:underline; font-size:12px; }
   .mc-err { margin-top:10px; font-size:12px; color:var(--err); }
-  .mc-tabs { margin:10px 0 14px; gap:16px; border-bottom:1px solid var(--line); flex-wrap:nowrap; }
-  .mc-tabs .tab-btn { padding:9px 0; margin-bottom:-1px; }
+  .mc-tabs { margin:0 0 14px; gap:16px; border-bottom:none; box-shadow:inset 0 -1px 0 var(--line);
+    flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; }
+  .mc-tabs::-webkit-scrollbar { display:none; }
+  .mc-tabs .tab-btn { padding:9px 0; margin-bottom:0; }
   @media (max-width:640px) { .mc-tabs { flex-wrap:nowrap; overflow-x:auto; } }
   .mc-readings { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border:1px solid var(--line); }
   .mc-readings > div { display:flex; flex-direction:column; gap:3px; padding:9px 12px; border-right:1px solid var(--line); min-width:0; }
@@ -1211,7 +1240,6 @@
   .drawer-box > button { align-self:flex-start; }
   .drawer-progress { font-size:12px; color:var(--muted); }
   #scanCandidates .kv { margin:0; padding:6px 0; }
-  .mt-layout.wide .mt-card { flex-basis:100%; }
   /* Телефон: в строке остаётся главное — помещение, расход, поверка (у воды — показание и
      состояние); модель, адрес и показание есть в карточке прибора. Без горизонтальной прокрутки. */
   @media (max-width:640px) {
@@ -1586,13 +1614,18 @@
         <span>Найдите их на шине RS-485 или добавьте по адресу — кнопка «Добавить прибор» вверху.</span>
       </div>
       <div class="mt-layout" id="mtLayout">
-        <section class="mt-box mt-list" aria-label="Электросчётчики">
-          <div class="mt-toolbar">
-            <div class="mt-chips" id="mtFilters"></div>
-            <input type="search" class="mt-search" id="mtSearch" placeholder="Помещение, №, адрес" aria-label="Поиск прибора" oninput="renderMeterTable()">
-          </div>
-          <div class="mt-scroll"><div class="mt-table" id="mtTable"></div></div>
-        </section>
+        <!-- Выбранный прибор — строкой; по клику раскрывается список всех приборов поверх карточки
+             (накрывает, а не сдвигает её: карточка всегда на одном месте). -->
+        <div class="mt-picker" id="mtPicker">
+          <button type="button" class="mt-trigger" id="mtTrigger" onclick="toggleDropList('mtPicker')" aria-expanded="false" aria-controls="mtPanel"></button>
+          <section class="mt-box mt-panel" id="mtPanel" aria-label="Электросчётчики">
+            <div class="mt-toolbar">
+              <div class="mt-chips" id="mtFilters"></div>
+              <input type="search" class="mt-search" id="mtSearch" placeholder="Помещение, №, адрес" aria-label="Поиск прибора" oninput="renderMeterTable()">
+            </div>
+            <div class="mt-scroll"><div class="mt-table" id="mtTable"></div></div>
+          </section>
+        </div>
 
         <aside class="mt-box mt-card" id="meterInfoWrap" aria-label="Карточка прибора">
           <div class="mc-head">
@@ -1743,13 +1776,16 @@
         <span>Вода подключается через счётчик импульсов «Пульсар» на той же шине RS-485 — кнопка «Добавить прибор» вверху.</span>
       </div>
       <div class="mt-layout" id="pulseLayout">
-        <section class="mt-box mt-list" aria-label="Счётчики воды">
-          <div class="mt-toolbar">
-            <span class="mt-hint">Счётчики импульсов «Пульсар» · строка — канал прибора</span>
-            <button type="button" class="ghost mt-tool-btn" onclick="openAddDrawer('pulse')">+ Подключить канал</button>
-          </div>
-          <div class="mt-scroll"><div class="mt-table" id="pulseMetersList"></div></div>
-        </section>
+        <div class="mt-picker" id="pulsePicker">
+          <button type="button" class="mt-trigger water" id="pulseTrigger" onclick="toggleDropList('pulsePicker')" aria-expanded="false" aria-controls="pulsePanel"></button>
+          <section class="mt-box mt-panel" id="pulsePanel" aria-label="Счётчики воды">
+            <div class="mt-toolbar">
+              <span class="mt-hint">Счётчики импульсов «Пульсар» · строка — канал прибора</span>
+              <button type="button" class="ghost mt-tool-btn" onclick="toggleDropList('pulsePicker',false);openAddDrawer('pulse')">+ Подключить канал</button>
+            </div>
+            <div class="mt-scroll"><div class="mt-table" id="pulseMetersList"></div></div>
+          </section>
+        </div>
         <aside class="mt-box mt-card" id="pulseCard" aria-label="Карточка канала"></aside>
       </div>
     </div>
@@ -2272,7 +2308,7 @@ function renderMeterSection(){
   $('mtLayout').style.display=none?'none':'flex';
   $('mtSummary').style.display=none?'none':'flex';
   if(none) return;
-  renderMeterSummary(); renderMeterTable(); renderMeterCard();
+  renderMeterSummary(); renderMeterTable(); renderMeterTrigger(); renderMeterCard();
 }
 function renderMeterSummary(){
   const monthTxt=meterOverviewToday?MONTH_NAMES[parseInt(meterOverviewToday.slice(5,7),10)-1].toLowerCase():'месяц';
@@ -2297,12 +2333,48 @@ function renderMeterSummary(){
     else if(d && (d.key==='w'||d.key==='m')){ soon++; if(!firstSoon || m.verification_due<firstSoon.verification_due) firstSoon=m; }
   }
   const dueSub = over ? (soon?`и ${soon} скоро`:'нажмите, чтобы показать') : soon ? `ближайшая — ${fmtMinfoDate(firstSoon.verification_due)}` : 'в ближайший месяц сроков нет';
-  cells.push(`<button type="button" class="mt-sum${over?' danger':soon?' warn':''}" onclick="setMeterFilter('attn')">`+
+  cells.push(`<button type="button" class="mt-sum${over?' danger':soon?' warn':''}" onclick="event.stopPropagation();setMeterFilter('attn');toggleDropList('mtPicker',true)">`+
     `<span class="mt-sum-cap">Поверка</span><b>${over?over+' '+(over===1?'просрочена':'просрочены'):soon?soon+' скоро':'в порядке'}</b>`+
     `<span class="mt-sum-sub">${dueSub}</span></button>`);
   $('mtSummary').innerHTML=cells.join('');
 }
 function setMeterFilter(f){ meterFilter=f; renderMeterTable(); }
+// Выпадающий список приборов (электро — mtPicker, вода — pulsePicker).
+function toggleDropList(id, force){
+  const w=$(id); if(!w) return;
+  const open = force===undefined ? !w.classList.contains('open') : !!force;
+  w.classList.toggle('open', open);
+  w.querySelector('.mt-trigger').setAttribute('aria-expanded', open?'true':'false');
+  if(open && id==='mtPicker') setTimeout(()=>{ const s=$('mtSearch'); if(s && window.matchMedia('(hover:hover)').matches) s.focus(); },0);
+}
+// Клик мимо списка закрывает его. Клик по фильтру/строке перерисовывает список, и цель клика к
+// моменту этой проверки уже отцеплена от документа — такой клик был внутри, не закрываем.
+document.addEventListener('click', e=>{
+  if(!e.target.isConnected) return;
+  for(const id of ['mtPicker','pulsePicker']){
+    const w=$(id);
+    if(w && w.classList.contains('open') && !w.contains(e.target)) toggleDropList(id,false);
+  }
+});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ toggleDropList('mtPicker',false); toggleDropList('pulsePicker',false); } });
+const DROP_CHEV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+function renderMeterTrigger(){
+  const m=allMeters.find(x=>x.id===currentMeterId); if(!m) return;
+  const o=meterOverview[m.id]||{}, link=meterLink(m), due=objDueLevel(m.verification_due);
+  const dueHtml=!m.verification_due?'<b class="mt-due none">не указана</b>'
+    : due&&due.key==='over' ? '<b class="mt-due over">просрочена</b>'
+    : `<b class="mt-due${due&&(due.key==='w'||due.key==='m')?' soon':''}">до ${fmtMinfoDate(m.verification_due)}</b>`;
+  const monTxt=meterOverviewToday?MONTH_NAMES_SHORT[parseInt(meterOverviewToday.slice(5,7),10)-1]+'.':'мес.';
+  $('mtTrigger').innerHTML=
+    `<span class="dot ${link.dot}" aria-hidden="true"></span>`+
+    `<span class="mt-trig-main"><span class="mt-trig-cap">Прибор учёта · ${allMeters.length} в списке</span>`+
+    `<b>${esc(meterTitle(m))}</b>`+
+    `<small>${esc([m.model||'Меркурий', m.serial_number?'№'+m.serial_number:null, 'адрес '+m.addr, 'ТТ ×'+(m.ct_ratio||1)].filter(Boolean).join(' · '))} · <span class="mt-lnk ${link.key}">${link.text}</span></small></span>`+
+    `<span class="mt-trig-kv hide-sm"><span class="mt-trig-cap">Показание</span><b>${fmtFixed(o.endReading,3)}</b></span>`+
+    `<span class="mt-trig-kv"><span class="mt-trig-cap">Расход ${monTxt}</span><b>${fmtFixed(o.consumptionKwh,1)}</b></span>`+
+    `<span class="mt-trig-kv hide-sm"><span class="mt-trig-cap">Поверка</span>${dueHtml}</span>`+
+    `<span class="mt-trig-chev">${DROP_CHEV}</span>`;
+}
 const METER_FILTERS=[
   ['all','Все', ()=>true],
   ['attn','Требуют внимания', m=>meterNeedsAttention(m)],
@@ -2354,11 +2426,9 @@ function meterRowHtml(m){
     `<span class="num strong">${fmtFixed(o.consumptionKwh,1)}</span>`+
     dueTxt+`</button>`;
 }
-// На узком экране карточка стоит под списком — после выбора прибора прокручиваем к ней, иначе
-// клик по строке выглядел бы так, будто ничего не произошло.
 function pickMeterRow(id){
   selectMeter(id);
-  if(window.matchMedia('(max-width:1100px)').matches) $('meterInfoWrap').scrollIntoView({behavior:'smooth', block:'start'});
+  toggleDropList('mtPicker', false);
 }
 function renderMeterCard(){
   const m=allMeters.find(x=>x.id===currentMeterId); if(!m) return;
@@ -5019,9 +5089,6 @@ switchTab(initialTab);
 function switchMeterTab(name){
   document.querySelectorAll('#meterInfoWrap .tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.msub===name));
   document.querySelectorAll('#meterInfoWrap .subtab-panel').forEach(p=>p.classList.toggle('active', p.id==='msub-'+name));
-  // Почасовке (24 столбца) в узкой карточке тесно — на вкладке «Профиль» карточка встаёт под
-  // список во всю ширину, как раньше был раздел «АСКУЭ».
-  $('mtLayout').classList.toggle('wide', name==='profile');
   try{ localStorage.setItem('activeMeterTab', name); }catch(e){}
 }
 let initialMeterTab='overview';
@@ -5211,7 +5278,20 @@ function renderPulseMeters(){
       `<span class="num strong">${m.value==null?'—':fmtPulseAmount(m.value,m.pulse_weight)+' '+u}</span>`+
       `<span class="mt-state ${link.key}">${link.text}</span></button>`;
   }).join('');
+  renderPulseTrigger();
   renderPulseCard();
+}
+function renderPulseTrigger(){
+  const m=pulseMeters.find(x=>x.id===currentPulseId); if(!m) return;
+  const link=pulseLink(m), u=esc(m.unit||'м³');
+  $('pulseTrigger').innerHTML=
+    `<span class="dot ${link.dot}" aria-hidden="true"></span>`+
+    `<span class="mt-trig-main"><span class="mt-trig-cap">Счётчик воды · ${pulseMeters.length} в списке</span>`+
+    `<b>${esc(m.label||('Вода, канал '+m.channel))}</b>`+
+    `<small>«Пульсар» №${esc(m.serial)} · канал ${m.channel}${m.location?' · '+esc(m.location):''} · <span class="mt-lnk ${link.key}">${link.text}</span></small></span>`+
+    `<span class="mt-trig-kv hide-sm"><span class="mt-trig-cap">Вес импульса</span><b>${m.pulse_weight==null?'—':fmtPulseNum(m.pulse_weight)+' '+u}</b></span>`+
+    `<span class="mt-trig-kv"><span class="mt-trig-cap">Показание</span><b>${m.value==null?'—':fmtPulseAmount(m.value,m.pulse_weight)+' '+u}</b></span>`+
+    `<span class="mt-trig-chev">${DROP_CHEV}</span>`;
 }
 function pickPulseRow(id){
   if(id!==currentPulseId){
@@ -5220,8 +5300,8 @@ function pickPulseRow(id){
     setupOpenId=null;
   }
   renderPulseMeters();
+  toggleDropList('pulsePicker', false);
   if(pulseTab==='device') openPulseSetup(id);
-  if(window.matchMedia('(max-width:1100px)').matches) $('pulseCard').scrollIntoView({behavior:'smooth', block:'start'});
 }
 function setPulseTab(t){
   pulseTab=t;
