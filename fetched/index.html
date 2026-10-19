@@ -1148,10 +1148,15 @@
   .mt-row { display:grid; grid-template-columns:14px minmax(150px,1.7fr) 118px 52px 100px 92px 104px; gap:10px;
     align-items:center; width:100%; padding:8px 12px; margin:0; text-align:left; background:transparent;
     color:var(--tx); border:none; border-top:1px solid var(--line); box-shadow:none; font:400 13px var(--font-body); }
-  button.mt-row:hover { background:var(--card2); }
+  /* Выбранная строка — как активный пункт бокового меню (стиль GitHub, 19.10.2026): нейтральная
+     серая подложка и короткая скруглённая метка слева вместо полосы-бордюра во всю высоту. */
+  button.mt-row { position:relative; }
+  button.mt-row:hover { background:color-mix(in srgb, var(--tx) 4%, transparent); }
   button.mt-row:active:not(:disabled) { transform:none; filter:none; }
-  .mt-row.active { background:color-mix(in srgb, var(--accent) 11%, transparent); box-shadow:inset 2px 0 0 var(--accent); }
-  .mt-row.active.water { background:color-mix(in srgb, var(--res-water) 13%, transparent); box-shadow:inset 2px 0 0 var(--res-water); }
+  .mt-row.active, button.mt-row.active:hover { background:color-mix(in srgb, var(--tx) 7%, transparent); box-shadow:none; }
+  .mt-row.active::before { content:''; position:absolute; left:3px; top:50%; transform:translateY(-50%);
+    width:4px; height:22px; background:var(--accent); border-radius:6px !important; }
+  .mt-row.active.water::before { background:var(--res-water); }
   .mt-row.decom { color:var(--muted); }
   .mt-row.mt-head { border-top:none; background:var(--card2); font-size:11px; font-weight:600; color:var(--muted); padding-top:7px; padding-bottom:7px; }
   .pl-row { grid-template-columns:14px minmax(150px,1.6fr) 120px 90px 120px 130px; }
