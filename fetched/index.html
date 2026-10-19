@@ -154,15 +154,16 @@
     font:500 13px var(--font-body); cursor:pointer; transition:background 120ms ease, color 120ms ease; }
   .side-btn svg { width:16px; height:16px; flex:none; color:var(--muted); }
   .side-btn > span:first-of-type { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .side-btn:hover:not(.active) { background:var(--card2); }
-  /* Метка активного пункта — отдельная прямая полоса слева (::before), а не inset-тень: тень
-     повторяла скругление кнопки и читалась как банальная скруглённая рамка (просьба 15.10.2026). */
-  .side-btn { position:relative; }
-  .side-btn.active { background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--focus-ring);
+  /* Выделение пунктов — как в боковой навигации GitHub (просьба 19.10.2026): активный пункт —
+     нейтральная серая подложка со скруглением, текст и иконка обычного цвета, полужирный; слева,
+     вынесенная за подложку, — короткая скруглённая синяя метка. Наведение — та же подложка светлее. */
+  .side-btn { position:relative; border-radius:6px !important; }
+  .side-btn:hover:not(.active) { background:color-mix(in srgb, var(--tx) 5%, transparent); }
+  .side-btn.active { background:color-mix(in srgb, var(--tx) 8%, transparent); color:var(--tx);
     font-weight:600; box-shadow:none; }
-  .side-btn.active::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
-    background:var(--accent); border-radius:0 !important; }
-  .side-btn.active svg { color:var(--accent); }
+  .side-btn.active::before { content:''; position:absolute; left:-8px; top:50%; transform:translateY(-50%);
+    width:4px; height:22px; background:var(--accent); border-radius:6px !important; }
+  .side-btn.active svg { color:var(--tx); }
   .side-btn:active:not(:disabled) { transform:none; filter:none; }
   .side-foot { margin-top:auto; display:flex; flex-direction:column; gap:10px; padding:10px 4px 0;
     border-top:1px solid var(--line); }
