@@ -50,7 +50,7 @@
     --r:2px;
     /* Цвет ресурса — один на всю панель (вкладки «Приборов учёта», пикер ресурса «Объектов»):
        электроэнергия синяя, вода бирюзовая, тепло оранжевое. Текстовые оттенки, ≥4.5:1 на фоне. */
-    --res-power:#0072aa; --res-water:#177585; --res-heat:#b4500f;
+    --res-power:#6f52b5; --res-water:#177585; --res-heat:#b4500f;
   }
   /* Тёмная тема — графит #23272c, а не почти-чёрный: чёрный фон с волосяными линиями читается
      мрачно и «дёшево» (жалоба 04.09.2026). Поверхности подняты ступенями (bg → card → card2),
@@ -69,7 +69,7 @@
     --pop-shadow: 0 14px 30px rgba(0,0,0,.45);
     --card-border: 1px solid var(--line);
     --on-strong:#fff; --on-soft: rgba(255,255,255,.62); --wash-track: rgba(255,255,255,.12);
-    --res-power:#4cb3e8; --res-water:#73c8d7; --res-heat:#eb9a5c;
+    --res-power:#a891e6; --res-water:#73c8d7; --res-heat:#eb9a5c;
   }
   * { box-sizing:border-box; }
   html, body { background:var(--bg); }
@@ -1084,21 +1084,24 @@
   .mt-box { background:var(--card); border:1px solid var(--line); min-width:0; }
   .mt-card { padding:14px 16px 16px; }
   /* Строка выбранного прибора + выпадающий список */
-  .mt-picker { position:relative; z-index:15; }
+  .mt-picker { position:relative; z-index:15; --rc:var(--res-power); }
+  /* Цвет строки выбора и её списка — цвет ресурса (просьба 19.10.2026): электроэнергия
+     фиолетовая, вода бирюзовая. Рамка, заливка, наведение, кнопка «Все …» и метка строки. */
+  #pulsePicker { --rc:var(--res-water); }
+  .mt-picker .mt-panel { border-color:color-mix(in srgb, var(--rc) 40%, var(--line)); }
   /* Строка выбора оформлена как выпадающий выбор, а не карточка (просьба 19.10.2026): синяя
      подложка и рамка, прямая полоса слева (как у активного пункта меню) и явная кнопка
      «Все приборы ▾» справа. Чёрная рамка читалась как статичный блок. */
   .mt-trigger { position:relative; display:flex; align-items:center; gap:18px; width:100%; padding:10px 12px 10px 17px;
     text-align:left; color:var(--tx); box-shadow:none; font:400 13px var(--font-body);
-    background:color-mix(in srgb, var(--accent) 5%, var(--card));
-    border:1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+    background:color-mix(in srgb, var(--rc) 5%, var(--card));
+    border:1px solid color-mix(in srgb, var(--rc) 45%, var(--line));
     transition:background 120ms ease, border-color 120ms ease, box-shadow 120ms ease; }
   .mt-trigger::before { content:''; position:absolute; left:-1px; top:-1px; bottom:-1px; width:4px;
-    background:var(--accent); border-radius:0 !important; }
-  .mt-trigger.water::before { background:var(--res-water); }
-  .mt-trigger:hover { background:color-mix(in srgb, var(--accent) 10%, var(--card)); border-color:var(--accent);
-    box-shadow:0 4px 14px color-mix(in srgb, var(--accent) 14%, transparent); }
-  .mt-picker.open .mt-trigger { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 8%, var(--card)); }
+    background:var(--rc); border-radius:0 !important; }
+  .mt-trigger:hover { background:color-mix(in srgb, var(--rc) 10%, var(--card)); border-color:var(--rc);
+    box-shadow:0 4px 14px color-mix(in srgb, var(--rc) 14%, transparent); }
+  .mt-picker.open .mt-trigger { border-color:var(--rc); background:color-mix(in srgb, var(--rc) 8%, var(--card)); }
   .mt-trigger:active:not(:disabled) { transform:none; filter:none; }
   .mt-trigger > .dot { flex:none; }
   .mt-trig-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
@@ -1109,13 +1112,13 @@
   .mt-trig-kv b { font-size:15px; font-weight:600; white-space:nowrap; }
   .mt-trig-kv b.mt-due { font-size:12px; }
   .mt-trig-chev { flex:none; display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 10px 0 14px;
-    border:1px solid var(--accent); background:var(--card); color:var(--focus-ring); font:600 13px var(--font-body);
+    border:1px solid var(--rc); background:var(--card); color:var(--rc); font:600 13px var(--font-body);
     white-space:nowrap; transition:background 120ms ease, color 120ms ease; }
   .mt-trig-chev b { min-width:20px; height:18px; padding:0 5px; display:inline-flex; align-items:center; justify-content:center;
-    font-size:11px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--focus-ring); }
+    font-size:11px; background:color-mix(in srgb, var(--rc) 14%, transparent); color:var(--rc); }
   .mt-trig-chev svg { width:16px; height:16px; transition:transform 150ms ease; }
-  .mt-trigger:hover .mt-trig-chev { background:color-mix(in srgb, var(--accent) 8%, var(--card)); }
-  .mt-picker.open .mt-trig-chev { background:var(--accent); color:#fff; }
+  .mt-trigger:hover .mt-trig-chev { background:color-mix(in srgb, var(--rc) 8%, var(--card)); }
+  .mt-picker.open .mt-trig-chev { background:var(--rc); color:#fff; }
   .mt-picker.open .mt-trig-chev b { background:rgba(255,255,255,.22); color:#fff; }
   .mt-picker.open .mt-trig-chev svg { transform:rotate(180deg); }
   @media (max-width:640px) { .mt-trig-chev .mt-chev-txt { display:none; } .mt-trig-chev { padding:0 8px; } }
@@ -1155,8 +1158,7 @@
   button.mt-row:active:not(:disabled) { transform:none; filter:none; }
   .mt-row.active, button.mt-row.active:hover { background:color-mix(in srgb, var(--tx) 7%, transparent); box-shadow:none; }
   .mt-row.active::before { content:''; position:absolute; left:0; top:0; bottom:0;
-    width:4px; background:var(--brand-blue); border-radius:0 !important; }
-  .mt-row.active.water::before { background:var(--res-water); }
+    width:4px; background:var(--rc, var(--brand-blue)); border-radius:0 !important; }
   .mt-row.decom { color:var(--muted); }
   .mt-row.mt-head { border-top:none; background:var(--card2); font-size:11px; font-weight:600; color:var(--muted); padding-top:7px; padding-bottom:7px; }
   .pl-row { grid-template-columns:14px minmax(150px,1.6fr) 120px 90px 120px 130px; }
