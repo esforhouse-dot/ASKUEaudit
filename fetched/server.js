@@ -1581,6 +1581,59 @@ app.get('/api/pulse-meters', (req, res) => {
     })),
   });
 });
+// Регистратор для счётчиков импульсов — вода, тепло (20.10.2026). Одна величина: расход за
+// 10-минутный интервал = разница соседних снимков накопленного значения (pulse_readings, пишутся раз
+// в 10 минут, см. savePulseReading). Снимки хранятся по UTC (savePulseReading берёт toISOString и
+// getHours процесса, а процесс работает в UTC), в отличие от readings Меркурия (московское время),
+// поэтому время точки — Date.UTC без поправки, а границы выбранных суток — по Москве (localTs).
+// Пропуск опроса (связь, пауза учёта) — разница за длинный интервал раскладывается поровну по
+// пропущенным 10-минуткам (объём верный, форма усреднённая); пропуск длиннее суток не раскладывается
+// (неизвестно, когда реально текло). Уменьшение показания (сброс в 0, запись показаний) — не расход.
+// На длинных диапазонах — суммы по часам/суткам (расход складывается, а не усредняется).
+const PULSE_SLOT_MS = 10 * 60 * 1000;
+app.get('/api/pulse-meters/:id/register', (req, res) => {
+  if (!req.modem) return res.status(404).json({ error: 'счётчик не найден' });
+  const pm = db.prepare('SELECT * FROM pulse_meters WHERE id = ?').get(parseInt(req.params.id, 10));
+  if (!pm || pm.modem_id !== req.modem.id) return res.status(404).json({ error: 'счётчик не найден' });
+  const today = hourSlot(Date.now()).date;
+  const from = /^\d{4}-\d{2}-\d{2}$/.test(req.query.from) ? req.query.from : addDaysStr(today, -6);
+  const to = /^\d{4}-\d{2}-\d{2}$/.test(req.query.to) ? req.query.to : today;
+  const t0 = localTs(from, '00:00'), t1 = localTs(addDaysStr(to, 1), '00:00');
+  const snaps = db.prepare(`SELECT date, slot, value FROM pulse_readings
+      WHERE pulse_meter_id = ? AND date >= ? AND date <= ? AND value IS NOT NULL ORDER BY date, slot`)
+    .all(pm.id, addDaysStr(from, -2), addDaysStr(to, 1))
+    .map((r) => {
+      const [Y, M, D] = r.date.split('-').map(Number);
+      const [hh, mm] = r.slot.split(':').map(Number);
+      return { t: Date.UTC(Y, M - 1, D, hh, mm), v: r.value };
+    });
+  const flows = [];
+  for (let i = 1; i < snaps.length; i++) {
+    const a = snaps[i - 1], b = snaps[i];
+    const d = b.v - a.v, n = Math.round((b.t - a.t) / PULSE_SLOT_MS);
+    if (d < 0 || n < 1 || n > 144) continue;
+    for (let k = 1; k <= n; k++) {
+      const t = a.t + k * PULSE_SLOT_MS;
+      if (t > t0 && t <= t1) flows.push({ t, flow: d / n });
+    }
+  }
+  const days = Math.max(1, Math.round((Date.parse(to) - Date.parse(from)) / 86400000) + 1);
+  let granularity = 'raw', points = flows;
+  if (days > 14) {
+    // Интервал (t-10мин, t] относится к часу/суткам, в которых он закончился; сутки — московские.
+    const step = days <= 92 ? 3600000 : 86400000;
+    granularity = days <= 92 ? 'hourly' : 'daily';
+    const off = step === 86400000 ? SITE_TZ_OFFSET_MS : 0;
+    const buckets = new Map();
+    for (const p of flows) {
+      const key = Math.floor((p.t - 1 + off) / step) * step - off;
+      buckets.set(key, (buckets.get(key) || 0) + p.flow);
+    }
+    points = [...buckets.entries()].sort((x, y) => x[0] - y[0]).map(([t, flow]) => ({ t, flow }));
+  }
+  points = points.map((p) => ({ t: p.t, flow: Math.round(p.flow * 1e6) / 1e6 }));
+  res.json({ points, granularity, from, to, unit: pm.unit || 'м³' });
+});
 app.post('/api/pulse-meters', (req, res) => {
   if (!req.modem) return res.status(400).json({ error: 'к проекту не привязан модем' });
   const b = req.body || {};

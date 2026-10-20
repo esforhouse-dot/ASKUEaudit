@@ -508,6 +508,10 @@
   .minfo-edit-btn:active, .minfo-save-btn:active { box-shadow:var(--inset-sm); }
 
   /* Регистратор — многосерийный график с общей осью, тянущейся под самые большие значения */
+  .reg-pulse-pick { display:flex; flex-direction:column; gap:5px; margin:0 0 14px; max-width:520px; }
+  .reg-pulse-pick select { height:38px; padding:0 10px; border:1px solid var(--line); background:var(--card); color:var(--tx);
+    font:600 13px var(--font-body); }
+  #regPulseEmpty { margin-bottom:14px; }
   .reg-toolbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
   .reg-ranges { display:flex; gap:3px; background:var(--card2); border:var(--card-border); border-radius:10px; padding:3px; overflow-x:auto; box-shadow:var(--inset-sm); }
   .reg-range-btn { background:transparent; border:none; box-shadow:none; color:var(--muted); padding:7px 12px; border-radius:7px;
@@ -1963,7 +1967,18 @@
 
   <!-- ── Регистратор ── -->
   <div class="tab-panel" id="tab-register">
-    <h2 class="sec-title">Регистратор</h2>
+    <!-- Ресурс (20.10.2026): электроэнергия — мгновенные величины Меркурия (как раньше); вода и
+         тепло — одна величина, расход за 10 минут по счётчику импульсов «Пульсар». -->
+    <div class="res-tabs" id="regResTabs" role="tablist" aria-label="Ресурс">
+      <button type="button" role="tab" class="res-tab res-power" data-res="power" onclick="regSetRes('power')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Электроэнергия</button>
+      <button type="button" role="tab" class="res-tab res-water" data-res="water" onclick="regSetRes('water')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg>Вода</button>
+      <button type="button" role="tab" class="res-tab res-heat" data-res="heat" onclick="regSetRes('heat')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-3 2-4 2-6 2 1 3 3 3 3s1-3 0-7z"/></svg>Тепло</button>
+    </div>
+    <label class="reg-pulse-pick" id="regPulseWrap" style="display:none">
+      <span class="mpicker-eyebrow">Счётчик</span>
+      <select id="regPulseSel" onchange="regPickPulse(this.value)"></select>
+    </label>
+    <div class="mt-empty" id="regPulseEmpty" style="display:none"><b id="regPulseEmptyTitle"></b><span id="regPulseEmptyText"></span></div>
     <div class="mpicker" id="regMeterPickerWrap" style="display:none">
       <button type="button" class="mpicker-trigger" id="regMeterPickerTrigger" onclick="toggleMeterPicker('reg')">
         <span class="mpicker-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
@@ -1975,7 +1990,7 @@
       </button>
       <div class="mpicker-list" id="regMeterPickerList"></div>
     </div>
-    <div class="card">
+    <div class="card" id="regCard">
       <div class="reg-toolbar">
         <div class="reg-ranges" id="regRanges">
           <button class="reg-range-btn" data-range="1" onclick="regSetRange(1)">Сутки</button>
@@ -2274,6 +2289,7 @@ function renderMeterPicker(meters){
     $(inst.wrap).style.display=meters.length?'block':'none';
     if(current){ $(inst.label).textContent=meterLabel(current); $(inst.list).innerHTML=itemsHtml; }
   }
+  if(regIsPulse()) $('regMeterPickerWrap').style.display='none';
   renderMeterSection();
 }
 function toggleMeterPicker(which){ $(METER_PICKER_INSTANCES[which||'reg'].wrap).classList.toggle('open'); }
@@ -4341,7 +4357,10 @@ function regSlotColor(i){
 }
 // null = величина не выбрана, слота у неё нет; чип в этом случае рисуется нейтральным.
 // regActive — Set, а он хранит порядок вставки: это и есть «порядок выбора».
-function regColorOf(key){ const i=[...regActive].indexOf(key); return i<0?null:regSlotColor(i); }
+function regColorOf(key){
+  if(key==='flow') return getComputedStyle(document.documentElement).getPropertyValue(regRes==='heat'?'--res-heat':'--res-water').trim();
+  const i=[...regActive].indexOf(key); return i<0?null:regSlotColor(i);
+}
 // Подпись на залитом чипе: белая не на всех слотах проходит по контрасту (на бирюзовом всего
 // 2.8:1, на жёлтом 3.1), поэтому выбираем по яркости заливки — белую или почти-чёрную. Так
 // каждый из 24 цветов палитры даёт минимум 4.5:1 с текстом, без ручных исключений по слотам.
@@ -4353,6 +4372,51 @@ function regChipInk(hex){
   return (1.05/(L+0.05)) >= ((L+0.05)/0.0564) ? '#fff' : '#111315';
 }
 let regActive=new Set(['u_a','u_b','u_c']);
+// ── Режим ресурса (20.10.2026): вода и тепло — счётчики импульсов, одна серия «Расход» (flow) ──
+// Тепло от воды отличается единицей канала (Гкал/ГДж/кВт·ч — тепло, остальное — вода): отдельного
+// признака ресурса у pulse_meters нет, единица задаётся в паспорте канала.
+let regRes='power', regPulseId=null, regLoadedFor=null;
+try{ const r=localStorage.getItem('regRes'); if(['power','water','heat'].includes(r)) regRes=r; }catch(e){}
+function pulseResource(m){ return /гкал|гдж|мвт|квт/i.test(m.unit||'') ? 'heat' : 'water'; }
+function regIsPulse(){ return regRes!=='power'; }
+// pulseMeters объявлен ниже по файлу (let): при первой отрисовке на старте страницы он ещё в «мёртвой
+// зоне», и даже typeof бросает ReferenceError — поэтому try, а не проверка typeof.
+function regPulseList(){ let all=[]; try{ all=pulseMeters; }catch(e){} return all.filter(m=>pulseResource(m)===regRes); }
+function regKeys(){ return regIsPulse() ? (regPulseId?['flow']:[]) : [...regActive]; }
+const REG_FLOW_LABEL={raw:'Расход за 10 мин', hourly:'Расход за час', daily:'Расход за сутки'};
+const REG_GRAN_LABEL_PULSE={raw:'по 10 минут', hourly:'по часам (сумма)', daily:'по суткам (сумма)'};
+function regSetRes(r){
+  if(r===regRes) return;
+  regRes=r; try{ localStorage.setItem('regRes', r); }catch(e){}
+  regZoomFrom=null; regZoomTo=null; regViewT0=null; regViewT1=null; regPoints=[]; regLoadedFor=null;
+  $('regZoomReset').style.display='none';
+  renderRegRes(); loadRegister();
+}
+function regPickPulse(id){ regPulseId=+id||null; regZoomFrom=null; regZoomTo=null; regViewT0=null; regViewT1=null; regLoadedFor=null; renderRegRes(); loadRegister(); }
+function renderRegRes(){
+  document.querySelectorAll('#regResTabs .res-tab').forEach(b=>{
+    const on=b.dataset.res===regRes; b.classList.toggle('active', on); b.setAttribute('aria-selected', on?'true':'false');
+  });
+  const pulse=regIsPulse();
+  const pw=$('regMeterPickerWrap'); if(pw) pw.style.display = !pulse && allMeters.length ? 'block' : 'none';
+  $('regSeries').style.display = pulse ? 'none' : '';
+  const list=pulse?regPulseList():[];
+  if(pulse && !list.some(m=>m.id===regPulseId)) regPulseId=list.length?list[0].id:null;
+  const sel=$('regPulseSel');
+  sel.innerHTML=list.map(m=>`<option value="${m.id}"${m.id===regPulseId?' selected':''}>${esc((m.label||('Канал '+m.channel))+' · «Пульсар» №'+m.serial+' · канал '+m.channel)}</option>`).join('');
+  $('regPulseWrap').style.display = pulse && list.length ? 'flex' : 'none';
+  const empty = pulse && !list.length;
+  $('regPulseEmpty').style.display = empty ? 'flex' : 'none';
+  $('regCard').style.display = empty ? 'none' : '';
+  if(empty){
+    $('regPulseEmptyTitle').textContent = regRes==='water' ? 'Счётчиков воды нет' : 'Счётчиков тепла нет';
+    $('regPulseEmptyText').textContent = regRes==='water'
+      ? 'Добавьте канал «Пульсара» в «Приборах учёта» — расход появится здесь через 10 минут.'
+      : 'Тепло — канал «Пульсара» с единицей Гкал, ГДж или кВт·ч (задаётся в паспорте канала).';
+  }
+  const pm=list.find(m=>m.id===regPulseId);
+  REG_BY_KEY.flow={ key:'flow', label:REG_FLOW_LABEL[regGranularity]||'Расход', unit:(pm&&pm.unit)||'м³' };
+}
 let regPoints=[], regGranularity='raw', regRangeDays=7, regZoomFrom=null, regZoomTo=null, regLoading=false;
 let regViewT0=null, regViewT1=null; // клиентское окно приближения внутри загруженных точек; null = весь диапазон
 const REG_DAY_MS=86400000;
@@ -4433,7 +4497,11 @@ function addDaysIso(dateStr, delta){
   return new Date(Date.UTC(Y,M-1,D+delta)).toISOString().slice(0,10);
 }
 async function loadRegister(){
-  if(!currentMeterId || regLoading) return;
+  if(regLoading) return;
+  if(regIsPulse()){
+    renderRegRes();
+    if(!regPulseId){ regPoints=[]; drawRegChart(); regUpdateScrubRange(); return; }
+  } else if(!currentMeterId) return;
   regLoading=true;
   renderRegChips();
   let from, to;
@@ -4450,6 +4518,15 @@ async function loadRegister(){
     from=addDaysIso(to,-(regRangeDays-1));
   }
   try{
+    if(regIsPulse()){
+      const d=await api(dUrl(`/api/pulse-meters/${regPulseId}/register?from=${from}&to=${to}`));
+      regPoints=d.points||[]; regGranularity=d.granularity; regLoadedFor=regRes+':'+regPulseId;
+      renderRegRes();
+      if(regRangeDays===1){ reg24hEnd=Math.min(reg24hEnd, Date.now()); regViewT1=reg24hEnd; regViewT0=reg24hEnd-REG_DAY_MS; }
+      else { regViewT0=null; regViewT1=null; }
+      drawRegChart(); regUpdateScrubRange();
+      return;
+    }
     const d=await api(mUrl(`/api/mercury/register?from=${from}&to=${to}`));
     // Коэфф. трансформации (ТТ) — та же логика и тот же список величин (ток, мощности P/Q/S; НЕ
     // напряжение и НЕ энергия), что уже применяется к панели мгновенных показаний, см. renderMercury
@@ -4522,7 +4599,7 @@ function fmtRegTime(t, gran){
 function drawRegChart(){
   const svg=$('regChart'), W=900, H=300, padL=8, padR=8, padT=10, padB=24;
   const axisX=$('regAxisX'), axisY=$('regAxisY');
-  const keys=[...regActive];
+  const keys=regKeys();
   if(!regPoints.length || !keys.length){
     svg.innerHTML=`<text x="${W/2}" y="${H/2}" style="fill:var(--muted)" font-size="13" text-anchor="middle">${!keys.length?'Выберите хотя бы одну величину':'Нет данных за этот период'}</text>`;
     if(axisX) axisX.innerHTML=''; if(axisY) axisY.innerHTML='';
@@ -4542,8 +4619,9 @@ function drawRegChart(){
   let vMin=Infinity, vMax=-Infinity;
   for(const p of visPoints) for(const k of keys){ const v=p[k]; if(v==null) continue; if(v<vMin)vMin=v; if(v>vMax)vMax=v; }
   if(!isFinite(vMin)){ vMin=0; vMax=1; }
+  if(regIsPulse()){ vMin=0; if(vMax<=0) vMax=1; } // расход — от нуля
   if(vMax===vMin) vMax=vMin+1;
-  const span=vMax-vMin, top=vMax+span*0.08, bot=vMin-span*0.05;
+  const span=vMax-vMin, top=vMax+span*0.08, bot=regIsPulse()?0:vMin-span*0.05;
   const ys=v=>padT+(1-(v-bot)/(top-bot))*(H-padT-padB);
 
   let grid='', yTicksHtml='';
@@ -4567,7 +4645,7 @@ function drawRegChart(){
       run.push({x:+xs(p.t).toFixed(1), y:+ys(v).toFixed(1)});
     });
     flushRun();
-    if(d) paths+=`<path d="${d}" fill="none" stroke="${regColorOf(k)}" stroke-width="0.8" stroke-linejoin="round" stroke-linecap="round"/>`;
+    if(d) paths+=`<path d="${d}" fill="none" stroke="${regColorOf(k)}" stroke-width="${k==='flow'?1.4:0.8}" stroke-linejoin="round" stroke-linecap="round"/>`;
   }
   const longLabel=regRangeDays!==1 && regGranularity==='raw' && (t1-t0)<2*86400000;
   const xLabel=t=>{
@@ -4592,7 +4670,7 @@ function drawRegChart(){
   if(axisX) axisX.innerHTML=xTicksHtml;
 
   svg._reg={xs,ys,t0,t1,fullT0,fullT1,padL,padR,padT,padB,W,H,keys,visPoints};
-  $('regMeta').textContent=`${visPoints.length} точек · ${REG_GRAN_LABEL[regGranularity]||regGranularity}`;
+  $('regMeta').textContent=`${visPoints.length} точек · ${(regIsPulse()?REG_GRAN_LABEL_PULSE:REG_GRAN_LABEL)[regGranularity]||regGranularity}`;
   regRenderDots(null);   // координаты пересчитаны — старые точки уже не на своих местах
   regWireInteraction(svg);
 }
@@ -4664,7 +4742,7 @@ function regRenderReadout(p){
   const box=$('regReadout'); if(!box) return;
   if(!p){ box.innerHTML='<span class="reg-readout-hint">Потяните ползунок под графиком, чтобы посмотреть значения</span>'; return; }
   let html=`<div class="reg-readout-time">${esc(fmtRegTime(p.t,regGranularity))}</div><div class="reg-readout-vals">`;
-  for(const k of [...regActive]){ const s=REG_BY_KEY[k]; const v=p[k];
+  for(const k of regKeys()){ const s=REG_BY_KEY[k]; const v=p[k];
     html+=`<span class="reg-readout-item"><span class="dot" style="background:${regColorOf(k)}"></span>${esc(s.label)}<b>${fmtRegVal(v,s.unit)}</b></span>`; }
   html+='</div>';
   box.innerHTML=html;
@@ -4787,7 +4865,7 @@ function regWireInteraction(svg){
 function regShowTooltip(p, clientX, clientY, svg){
   const tip=$('regTooltip'); const wrap=svg.parentElement; const wr=wrap.getBoundingClientRect();
   let rows=`<div class="t">${esc(fmtRegTime(p.t,regGranularity))}</div>`;
-  for(const k of [...regActive]){ const s=REG_BY_KEY[k]; const v=p[k];
+  for(const k of regKeys()){ const s=REG_BY_KEY[k]; const v=p[k];
     rows+=`<div class="row"><span class="dot" style="background:${regColorOf(k)}"></span>${esc(s.label)}<b>${fmtRegVal(v,s.unit)}</b></div>`; }
   tip.innerHTML=rows;
   tip.style.display='block';
@@ -5230,6 +5308,7 @@ initialMeterTab=({readings:'overview', settings:'passport'})[initialMeterTab]||i
 if(!['overview','profile','energy','events','passport'].includes(initialMeterTab)) initialMeterTab='overview';
 switchMeterTab(initialMeterTab);
 switchMeterRes(meterRes);
+renderRegRes();
 
 renderObjResourcePicker();
 
@@ -5352,6 +5431,7 @@ async function loadPulseMeters(){
     const d=await (await fetch(dUrl('/api/pulse-meters'))).json();
     pulseMeters = d.meters||[];
     renderPulseMeters();
+    if(regIsPulse()){ renderRegRes(); if(regPulseId && regLoadedFor!==regRes+':'+regPulseId) loadRegister(); }
   }catch(e){}
 }
 // Прибор хранит и отдаёт числа во float32, из-за чего 0.001 возвращается как
